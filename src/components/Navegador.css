@@ -72,6 +72,7 @@ nav {
   align-items: center;
   justify-content: center;
   transition: opacity 0.3s ease;
+  position: relative; /* necesario para posicionar el badge */
 }
 
 .actions-container button:hover {
@@ -83,6 +84,32 @@ nav {
   height: 28px;
   color: white;
   stroke-width: 2;
+}
+
+/* Badge del carrito */
+.cart-button .cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ff6b35;
+  color: white;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  animation: pop 220ms cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes pop {
+  0% { transform: scale(.6); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
 }
 
 /* Ocultar menú hamburguesa en desktop */
