@@ -19,7 +19,7 @@ import { Contacto } from './components/Contacto';
 import { Footer } from './components/Footer';
 import { Menu } from './components/Menu';
 import { Cart } from './components/Cart';
-import { MiPedido } from './components/MiPedido';
+// Eliminado `MiPedido` del render principal por petición del usuario
 
 function App() {
   // Componente contenedor: el CartProvider hace disponible el estado del carrito
@@ -31,7 +31,6 @@ function App() {
         <Hero />
         <Menu />
         <Cart />
-        <MiPedido />
         <Nosotros />
         <Contacto />
         <Footer />
