@@ -13,8 +13,11 @@
 #  Importamos todas las librerias que utilizaremos
 from fastapi import FastAPI, HTTPException
 import sqlite3
-from pydantic import BaseModel  
+from pydantic import BaseModel
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
+
 
 
 # La variable DB_NAME almacena el nombre del archivo de la base de datos SQLite
@@ -78,6 +81,13 @@ def get_db_connection():
 
 # instancia de FastApi
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especifica tu dominio
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ejecutamos la funcion que prepara la base de datos
 init_db()
@@ -100,6 +110,13 @@ class Pedido(BaseModel):
     nombre_cliente: str
     direccion: str
     detalles: list[DetallePedido]
+
+class ProductoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    precio: Optional[float] = None
+    imagen: Optional[str] = None
+    categoria: Optional[str] = None
 
 
 # Enpoint Raiz
@@ -210,6 +227,62 @@ def cargar_pedido(pedido: Pedido):
         "total": total
     }
 
+@app.put("/productos/{producto_id}", status_code=200)
+def actualizar_producto(producto_id: int, producto: ProductoUpdate):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Verificar que el producto existe
+    cursor.execute("SELECT * FROM productos WHERE producto_id = ?", (producto_id,))
+    producto_existente = cursor.fetchone()
+    
+    if producto_existente is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    # Construir la query dinámicamente solo con los campos que se enviaron
+    campos_actualizar = []
+    valores = []
+    
+    if producto.nombre is not None:
+        campos_actualizar.append("nombre = ?")
+        valores.append(producto.nombre)
+    
+    if producto.descripcion is not None:
+        campos_actualizar.append("descripcion = ?")
+        valores.append(producto.descripcion)
+    
+    if producto.precio is not None:
+        campos_actualizar.append("precio = ?")
+        valores.append(producto.precio)
+    
+    if producto.imagen is not None:
+        campos_actualizar.append("imagen = ?")
+        valores.append(producto.imagen)
+    
+    if producto.categoria is not None:
+        campos_actualizar.append("categoria = ?")
+        valores.append(producto.categoria)
+    
+    # Si no hay campos para actualizar
+    if not campos_actualizar:
+        conn.close()
+        return {"mensaje": "No se proporcionaron campos para actualizar"}
+    
+    # Construir y ejecutar la query
+    valores.append(producto_id)  # Agregar el ID al final para el WHERE
+    query = f"UPDATE productos SET {', '.join(campos_actualizar)} WHERE producto_id = ?"
+    
+    cursor.execute(query, tuple(valores))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "mensaje": "Producto actualizado exitosamente",
+        "producto_id": producto_id
+    }
+
 # Endpoint que utiliza la operacion GET para obtener los datos de los pedidos y sus detalles
 @app.get("/pedidos")
 def mostrar_pedidos():
@@ -236,3 +309,27 @@ def mostrar_pedidos():
     conn.close()
     return pedidos
 
+@app.delete("/pedidos/{pedido_id}")
+def eliminar_pedido(pedido_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM pedidos WHERE pedido_id = ?", (pedido_id,))
+    pedido = cursor.fetchone()
+
+    if pedido is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    cursor.execute("DELETE FROM pedido_detalle WHERE pedido_id = ?", (pedido_id,))
+    
+    # Eliminar el pedido (DESPUÉS)
+    cursor.execute("DELETE FROM pedidos WHERE pedido_id = ?", (pedido_id,))
+    
+    conn.commit()
+    conn.close()
+
+    return {
+        "mensaje": "Pedido cancelado exitosamente",
+        "pedido_id": pedido_id
+    }
