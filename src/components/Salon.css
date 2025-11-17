@@ -1,0 +1,243 @@
+.salon-section {
+  padding: 3rem 1rem;
+  background: #fff7ed;
+}
+
+.salon-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.tables-and-sidebar {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.tables-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  flex: 1 1 60%;
+}
+
+.table-card {
+  background: linear-gradient(180deg,#fff,#ffedd5);
+  border: 2px solid rgba(0,0,0,0.06);
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 90px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+}
+
+.table-card:hover { transform: translateY(-4px); box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
+
+/* Mesa ocupada: fondo más evidente y borde rojo */
+.table-card--occupied {
+  border-color: #dc2626;
+  background: linear-gradient(180deg,#fff1f0,#fee2e2);
+}
+
+.table-card--occupied .table-number { color: #991b1b }
+
+/* Mesa pagada: mostrar en tono amarillo/ámbar para diferenciar de ocupada */
+.table-card--paid {
+  border-color: #f59e0b; /* amber-500 */
+  background: linear-gradient(180deg,#fff7ed,#fff3d8);
+}
+.table-card--paid .table-number { color: #92400e; }
+
+/* Botón de cerrar mesa / cuenta pagada: estilo más estético */
+.paid-actions .danger-btn {
+  background: linear-gradient(90deg,#f59e0b,#f97316); /* amber -> orange */
+  color: #1f2937;
+  border: none;
+  padding: .6rem 1rem;
+  border-radius: 12px;
+  font-weight: 800;
+  box-shadow: 0 10px 30px rgba(245,158,11,0.16);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+.paid-actions .danger-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(245,158,11,0.2); }
+
+/* Ajustes responsivos: botón ocupa todo el ancho en móvil */
+@media (max-width: 640px) {
+  .paid-actions .danger-btn { width: 100%; justify-content: center; }
+}
+
+
+.table-number { font-size: 1.5rem; font-weight:700; color:#b45309; }
+.table-status { font-size: .9rem; color: #7c2d12; }
+
+.salon-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  display: block;
+}
+
+.salon-sidebar {
+  position: fixed;
+  right: -520px; /* hidden by default */
+  top: 80px;
+  width: 460px;
+  height: calc(100vh - 120px);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-radius: 12px 0 0 12px;
+  padding: 1rem;
+  box-shadow: 0 20px 50px rgba(2,6,23,0.18);
+  transition: right 260ms cubic-bezier(.2,.9,.2,1), opacity 160ms ease;
+  z-index: 1001;
+  overflow: auto;
+}
+
+.salon-sidebar .sidebar-header { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+.salon-sidebar .close-btn { background:#ef4444; color:#fff; border:none; padding:.4rem .6rem; border-radius:6px; cursor:pointer }
+.salon-sidebar .sidebar-empty { color:#6b7280; padding:1rem 0 }
+
+.products-list { margin-top: .6rem; }
+.products-scroll { max-height: 60vh; overflow:auto; display:flex; flex-direction:column; gap:.75rem; padding-right:.4rem; padding-left:.2rem }
+
+.category-items { display:block; max-height: 40vh; overflow:auto; padding-right:.25rem }
+
+/* scrollbars visibles y agradables */
+.products-scroll::-webkit-scrollbar, .category-items::-webkit-scrollbar, .invoice-body::-webkit-scrollbar {
+  width: 10px;
+}
+.products-scroll::-webkit-scrollbar-thumb, .category-items::-webkit-scrollbar-thumb, .invoice-body::-webkit-scrollbar-thumb {
+  background: rgba(17,24,39,0.12);
+  border-radius: 8px;
+}
+.products-scroll::-webkit-scrollbar-track, .category-items::-webkit-scrollbar-track, .invoice-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.product-row { display:flex; justify-content:space-between; align-items:center; padding:.4rem; border-bottom:1px solid rgba(0,0,0,0.04) }
+.p-left { display:flex; gap:.6rem; align-items:center }
+.p-icon { width:44px; height:44px; display:flex; align-items:center; justify-content:center }
+.p-name { font-weight:700; font-size:1rem }
+.p-desc { font-size:0.85rem; color:#6b7280; margin-top:4px }
+.p-price { font-size:.95rem; color:#111827; font-weight:700 }
+.add-btn { background: linear-gradient(90deg,#06b6d4,#7c3aed); color:white; border:none; width:40px; height:40px; border-radius:8px; cursor:pointer; box-shadow: 0 6px 18px rgba(124,58,237,0.18) }
+
+.product-card-lg { padding:10px; border-radius:8px; background: linear-gradient(180deg,#ffffff,#fbfbff); box-shadow: 0 6px 20px rgba(2,6,23,0.04); }
+
+.table-inputs { display:flex; gap:.6rem; margin-bottom:.6rem; }
+.table-inputs label { display:flex; flex-direction:column; font-size:.9rem; gap:.25rem }
+.table-inputs input[type="text"], .table-inputs input[type="number"] { padding:.35rem .5rem; border-radius:8px; border:1px solid rgba(0,0,0,0.08); background:#fff }
+
+.category-block { margin-bottom:.6rem }
+.category-header { display:flex; align-items:center; gap:.6rem }
+.cat-toggle { width:28px; height:28px; border-radius:6px; border:none; background:#f3f4f6; cursor:pointer }
+.cat-title { text-transform: capitalize }
+
+.order-list { margin-top:1rem; border-top:1px dashed rgba(0,0,0,0.06); padding-top:.8rem }
+.order-row { display:flex; justify-content:space-between; align-items:center; padding:.4rem 0 }
+.order-left { display:flex; flex-direction:column }
+.order-qty { display:flex; gap:.4rem; align-items:center }
+.order-qty button { width:28px; height:28px; border-radius:6px; border:none; background:#f3f4f6; cursor:pointer }
+
+.order-actions { margin-top: .8rem; display:flex; flex-direction:column; gap:.6rem }
+.send-order-btn { background:#1d4ed8; color:white; border:none; padding:.6rem .8rem; border-radius:8px; cursor:pointer }
+.send-order-btn:disabled { opacity:0.6; cursor:not-allowed }
+.invoice-box { background:#f8fafc; border:1px solid rgba(0,0,0,0.04); padding:.6rem; border-radius:8px }
+
+@media (max-width: 900px) {
+  .tables-grid { grid-template-columns: repeat(4, 1fr); }
+  .salon-sidebar { width: 420px; }
+}
+
+@media (max-width: 640px) {
+  .tables-and-sidebar { flex-direction: column; }
+  .tables-grid { grid-template-columns: repeat(5, 1fr); overflow-x:auto; }
+  .salon-sidebar { width:100%; right: -100%; top: 70px; height: calc(100vh - 140px); border-radius: 8px 8px 0 0 }
+}
+
+/* cuando el sidebar tiene la clase open lo mostramos */
+.salon-sidebar.open { right: 0; }
+
+.close-btn { background:#ef4444; color:#fff; border:none; padding:.4rem .6rem; border-radius:6px; cursor:pointer; font-weight:700 }
+.close-btn:hover { opacity:0.95 }
+
+/* Modal de factura */
+.invoice-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.invoice-modal {
+  width: 520px;
+  max-width: calc(100% - 40px);
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 20px 50px rgba(2,6,23,0.2);
+}
+.invoice-body { margin-top: .6rem; max-height: 320px; overflow:auto }
+.invoice-item { display:flex; justify-content:space-between; padding:.35rem 0; border-bottom:1px dashed rgba(0,0,0,0.04) }
+.invoice-actions { display:flex; gap:.6rem; margin-top:.8rem; justify-content:flex-end }
+.invoice-actions button { padding:.5rem .75rem; border-radius:8px; border:none; cursor:pointer }
+.invoice-actions button:first-child { background:#111827; color:white }
+.invoice-actions button:nth-child(2) { background:#ef4444; color:white }
+.invoice-actions button:nth-child(3) { background:#9ca3af }
+.invoice-actions button:last-child { background:#e5e7eb }
+
+/* Buttons in panel */
+.two-buttons { display:flex; gap:0.6rem }
+.primary-btn { padding:.6rem .9rem; background: linear-gradient(90deg,#f97316,#ef4444); color:white; border:none; border-radius:10px; font-weight:700; box-shadow: 0 8px 22px rgba(239,68,68,0.12) }
+.secondary-btn { padding:.6rem .9rem; background: linear-gradient(90deg,#06b6d4,#7c3aed); color:white; border:none; border-radius:10px; font-weight:700; box-shadow: 0 8px 22px rgba(59,130,246,0.08) }
+
+.invoice-box { margin-top:.5rem; background: #fff; padding:.5rem; border-radius:8px; border:1px solid rgba(0,0,0,0.04) }
+
+/* QR y alias de pago en la vista previa */
+.payment-qr { display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-top:0.5rem }
+.payment-qr img { width: 180px; height: 180px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:#fff }
+.payment-alias { font-size:0.95rem; color:#111827; background:#f8fafc; padding:.35rem .6rem; border-radius:8px; margin-top:0.25rem }
+
+/* Banner de error al enviar (fade in) */
+.send-error {
+  background: #fff1f0;
+  color: #991b1b;
+  padding: .5rem;
+  border-radius: 8px;
+  margin: .5rem 0;
+  box-shadow: 0 6px 18px rgba(220,38,38,0.06);
+  animation: fadeIn .24s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Input error: borde rojo y ligero glow */
+.input-error {
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: 0 6px 18px rgba(239,68,68,0.08);
+  outline: none;
+}
+
+.input-error:focus {
+  box-shadow: 0 10px 30px rgba(239,68,68,0.12);
+}
+
+/* Mensaje de validación de campo (pequeño) */
+.field-error {
+  margin-top: .35rem;
+  font-size: .85rem;
+  color: #b91c1c;
+}

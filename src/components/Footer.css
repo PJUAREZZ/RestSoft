@@ -4,3 +4,8 @@
   padding: 2rem 1rem;
   text-align: center;
 }
+
+/* Cuando estamos en la página del salón empujamos el footer un poco más abajo */
+body.salon-page .footer {
+  margin-top: 3.5rem; /* ajustar según preferencia */
+}

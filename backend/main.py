@@ -65,7 +65,8 @@ def init_db():
             nombre_cliente TEXT NOT NULL,
             direccion TEXT NOT NULL,
             total REAL NOT NULL,
-            fecha_pedido TEXT NOT NULL
+            fecha_pedido TEXT NOT NULL,
+            origen TEXT
         )
     """)
     
@@ -82,9 +83,41 @@ def init_db():
         )
     """)
 
+    # creacion Tabla PEDIDOS_SALON para almacenar metadatos de pedidos realizados en el salón
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pedidos_salon (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL,
+            mesa INTEGER,
+            mozo TEXT,
+            personas INTEGER,
+            total REAL,
+            fecha TEXT,
+            FOREIGN KEY (pedido_id) REFERENCES pedidos(pedido_id)
+        )
+    """)
+
     conn.commit()  # Guardar cambios
     conn.close()   # Cerrar conexión
     print("Base de datos inicializada")
+
+    # Si la base ya existía sin la columna 'origen', intentamos agregarla (seguro en sqlite)
+    try:
+        conn2 = sqlite3.connect(DB_NAME)
+        cursor2 = conn2.cursor()
+        cursor2.execute("PRAGMA table_info(pedidos)")
+        cols = [row[1] for row in cursor2.fetchall()]
+        if 'origen' not in cols:
+            cursor2.execute("ALTER TABLE pedidos ADD COLUMN origen TEXT")
+            conn2.commit()
+    except Exception:
+        # Si falla por cualquier razón, no rompemos la inicialización
+        pass
+    finally:
+        try:
+            conn2.close()
+        except Exception:
+            pass
 
 
 def get_db_connection():
@@ -143,6 +176,11 @@ class Pedido(BaseModel):
     nombre_cliente: str
     direccion: str
     detalles: list[DetallePedido]
+    origen: Optional[str] = None
+    # Campos opcionales específicos para salón (si el frontend los envía)
+    mesa: Optional[int] = None
+    mozo: Optional[str] = None
+    personas: Optional[int] = None
 
 class ProductoUpdate(BaseModel):
     """Modelo para actualizaciones parciales de producto. Los campos son opcionales."""
@@ -242,11 +280,11 @@ def cargar_pedido(pedido: Pedido):
             raise HTTPException(status_code=404, detail=f"Producto con ID {item.producto_id} no encontrado")
         total += producto["precio"] * item.cantidad
 
-    # Insertar cabecera del pedido
+    # Insertar cabecera del pedido (incluye 'origen' si fue enviado)
     cursor.execute(
-        """INSERT INTO pedidos (nombre_cliente, direccion, total, fecha_pedido)
-           VALUES (?, ?, ?, ?)""",
-        (pedido.nombre_cliente, pedido.direccion, total, datetime.now().isoformat()),
+        """INSERT INTO pedidos (nombre_cliente, direccion, total, fecha_pedido, origen)
+           VALUES (?, ?, ?, ?, ?)""",
+        (pedido.nombre_cliente, pedido.direccion, total, datetime.now().isoformat(), pedido.origen or ""),
     )
     pedido_id = cursor.lastrowid
 
@@ -258,6 +296,54 @@ def cargar_pedido(pedido: Pedido):
             """INSERT INTO pedido_detalle(pedido_id, producto_id, cantidad, precio_unitario)
                VALUES (?, ?, ?, ?)""",
             (pedido_id, item.producto_id, item.cantidad, precio),
+        )
+
+    # Si el pedido proviene del salón, guardamos metadatos en la tabla `pedidos_salon`
+    if (pedido.origen or '').lower() == 'salon':
+        # Preferimos campos explícitos si el frontend los envía
+        mesa_val = None
+        mozo_val = None
+        personas_val = None
+        try:
+            import re
+            if pedido.mesa is not None:
+                mesa_val = int(pedido.mesa)
+            else:
+                # intentar extraer de nombre_cliente, ej. 'Mesa 5'
+                m = re.search(r"Mesa\s*(\d+)", pedido.nombre_cliente or "", re.I)
+                if m:
+                    mesa_val = int(m.group(1))
+
+            if pedido.mozo:
+                mozo_val = pedido.mozo
+            else:
+                # intentar extraer de direccion "Mozo: X | Personas: Y"
+                parts = (pedido.direccion or "").split('|')
+                for p in parts:
+                    p = p.strip()
+                    if p.lower().startswith('mozo:'):
+                        mozo_val = p.split(':', 1)[1].strip()
+                    if p.lower().startswith('personas:'):
+                        try:
+                            personas_val = int(p.split(':', 1)[1].strip())
+                        except Exception:
+                            pass
+                if personas_val is None:
+                    m2 = re.search(r"Personas:?\s*(\d+)", pedido.direccion or "", re.I)
+                    if m2:
+                        try:
+                            personas_val = int(m2.group(1))
+                        except Exception:
+                            pass
+        except Exception:
+            mesa_val = None
+            mozo_val = None
+            personas_val = None
+
+        cursor.execute(
+            """INSERT INTO pedidos_salon (pedido_id, mesa, mozo, personas, total, fecha)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (pedido_id, mesa_val, mozo_val or '', personas_val, total, datetime.now().isoformat()),
         )
 
     conn.commit()
@@ -334,6 +420,32 @@ def mostrar_pedidos():
 
     conn.close()
     return pedidos
+
+
+@app.get("/pedidos_salon")
+def mostrar_pedidos_salon():
+    """Devuelve la lista de pedidos realizados en el salón, con metadatos (mesa, mozo, personas)
+
+    Para cada fila en `pedidos_salon` devuelve también los items asociados al pedido (nombre, cantidad, precio_unitario).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM pedidos_salon")
+    salon_rows = [dict(row) for row in cursor.fetchall()]
+
+    for row in salon_rows:
+        pedido_id = row.get('pedido_id')
+        cursor.execute(
+            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, p.nombre, p.categoria
+               FROM pedido_detalle pd
+               JOIN productos p ON pd.producto_id = p.producto_id
+               WHERE pd.pedido_id = ?""",
+            (pedido_id,)
+        )
+        row['items'] = [dict(r) for r in cursor.fetchall()]
+
+    conn.close()
+    return salon_rows
 
 @app.delete("/pedidos/{pedido_id}")
 def eliminar_pedido(pedido_id: int):

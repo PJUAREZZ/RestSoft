@@ -18,7 +18,9 @@ import { Nosotros } from './components/Nosotros';
 import { Contacto } from './components/Contacto';
 import { Footer } from './components/Footer';
 import { Menu } from './components/Menu';
+import { Salon } from './components/Salon';
 import { Cart } from './components/Cart';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // Eliminado `MiPedido` del render principal por petición del usuario
 
 function App() {
@@ -27,13 +29,27 @@ function App() {
   return (
     <div className="app">
       <CartProvider>
-        <Navegador />
-        <Hero />
-        <Menu />
-        <Cart />
-        <Nosotros />
-        <Contacto />
-        <Footer />
+        <BrowserRouter>
+          <Navegador />
+          <Routes>
+            <Route path="/" element={
+              <>
+                <Hero />
+                <Menu />
+                <Cart />
+                <Nosotros />
+                <Contacto />
+                <Footer />
+              </>
+            } />
+            <Route path="/salon" element={
+              <>
+                <Salon />
+                <Footer />
+              </>
+            } />
+          </Routes>
+        </BrowserRouter>
       </CartProvider>
     </div>
   );
