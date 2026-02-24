@@ -1,8 +1,9 @@
 .footer {
-  background-color: #111827;
-  color: white;
+  background-color: #0f172a;
+  color: #e2e8f0;
   padding: 2rem 1rem;
   text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Cuando estamos en la página del salón empujamos el footer un poco más abajo */

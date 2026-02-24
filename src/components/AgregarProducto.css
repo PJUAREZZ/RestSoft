@@ -1,0 +1,91 @@
+
+/* ── Categoría con botón nueva ── */
+.categoria-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.categoria-row select {
+  flex: 1;
+}
+
+.btn-nueva-cat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.btn-nueva-cat:hover {
+  background: #1e40af;
+  color: white;
+  border-color: #1e40af;
+}
+
+.nueva-cat-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.nueva-cat-form input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.nueva-cat-form input:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.btn-guardar-cat {
+  padding: 0.5rem 1rem;
+  background: #1e40af;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-guardar-cat:hover:not(:disabled) {
+  background: #1e3a8a;
+}
+
+.btn-guardar-cat:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancelar-cat {
+  padding: 0.5rem 1rem;
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancelar-cat:hover {
+  background: #d1d5db;
+}

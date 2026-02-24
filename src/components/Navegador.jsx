@@ -1,110 +1,238 @@
-// Componente de navegación superior (header)
-// - Muestra logo y enlaces del menú
-// - Contiene el botón del carrito con badge (usa `getTotalItems` del contexto)
-// - Soporta un menú mobile que se muestra/oculta con `menuOpen`
-import { useCart } from "./CartContext";
-import { useState } from "react";
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, XIcon, MenuIcon, Hamburger } from "lucide-react";
+// ============================================================
+// Navegador.jsx — BARRA DE NAVEGACIÓN SUPERIOR
+// ============================================================
+// Muestra el header de la app con:
+//   - Logo y nombre del negocio (izquierda)
+//   - Íconos de navegación (centro) — algunos solo para admin
+//   - Nombre del usuario, botón de ayuda y botón Salir (derecha)
+//   - Menú mobile (hamburguesa) para pantallas chicas
+//
+// Props:
+//   currentUser  → objeto del usuario logueado
+//   onLogout     → función para cerrar sesión
+//   onPageChange → cambia la página activa en App.jsx
+//   currentPage  → string con la página activa (para resaltar el ícono)
+// ============================================================
+
+import { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+import {
+  XIcon, MenuIcon, Hamburger, Coffee,
+  Utensils, BarChart3, User, Plus,
+  HelpCircle, MessageCircle
+} from "lucide-react";
 import "./Navegador.css";
 
-export const Navegador = () => {
-  const { setCartOpen, getTotalItems } = useCart();
+export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, onOpenAgregar }) => {
+
+  // true = menú hamburguesa abierto (solo en mobile)
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLinkClick = () => {
-    // Cerrar menú mobile al hacer click en un enlace
-    setMenuOpen(false);
-  };
+  // true = popup de ayuda/WhatsApp visible
+  const [contactOpen, setContactOpen] = useState(false);
 
-  const location = useLocation();
+  // Permite navegar a rutas URL (usado al cerrar sesión para volver a "/")
   const navigate = useNavigate();
 
-  const scrollToSection = (id) => {
-    if (!id) return;
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      // fallback to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  // Cierra el menú mobile al hacer clic en cualquier enlace
+  const handleLinkClick = () => setMenuOpen(false);
+
+  // Cambia la página activa y cierra el menú mobile
+  const handlePageChange = (page) => {
+    onPageChange(page);
+    handleLinkClick();
   };
 
-  const handleNavTo = (sectionId) => {
-    setMenuOpen(false);
-    if (location.pathname === '/') {
-      // ya estamos en home, simplemente scrollear
-      scrollToSection(sectionId);
-    } else {
-      // navegamos primero a / y luego scrolleamos
-      navigate('/');
-      // esperar un momento para que el DOM del home se renderice
-      setTimeout(() => scrollToSection(sectionId), 250);
-    }
-  };
+  // ── CERRAR POPUP DE CONTACTO AL HACER CLIC AFUERA ────────
+  // Agrega un listener global al documento. Si el clic fue fuera
+  // del elemento .contact-wrapper, cierra el popup.
+  // Se limpia cuando el componente se desmonta para evitar memory leaks.
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (contactOpen && !e.target.closest('.contact-wrapper')) setContactOpen(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [contactOpen]);
+
+  // true si el usuario logueado es administrador
+  // Determina qué íconos del nav se muestran
+  const isAdmin = currentUser?.role === 'admin';
 
   return (
     <header>
+
+      {/* Logo: íconos decorativos + nombre del negocio del admin */}
       <div className="logo-container">
-        <Hamburger />
-        <p>Bar & Grill</p>
+        <Hamburger size={24} />
+        <Coffee size={24} />
+        <p>{currentUser?.businessName || 'RestSoft'}</p>
       </div>
 
+      {/* ── NAVEGACIÓN DESKTOP ── */}
       <nav>
         <ul className="nav-ul">
+
+          {/* 🍴 Pedidos — visible para TODOS los roles */}
           <li>
-            <a href="#inicio" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('inicio'); }}>Inicio</a>
+            <button
+              className={`nav-li ${currentPage === 'salon' ? 'nav-li-active' : ''}`}
+              title="Pedidos"
+              onClick={() => handlePageChange('salon')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              <Utensils size={20} />
+            </button>
           </li>
-          <li>
-            <a href="#menu" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('menu'); }}>Menu</a>
-          </li>
-          <li>
-            <Link to="/salon" className="nav-li">Salón</Link>
-          </li>
-          <li>
-            <a href="#mispedidos" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('mispedidos'); }}>Mis Pedidos</a>
-          </li>
-          <li>
-            <a href="#nosotros" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('nosotros'); }}>Nosotros</a>
-          </li>
-          <li>
-            <a href="#contacto" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('contacto'); }}>Contacto</a>
-          </li>
+
+          {/* Los siguientes íconos solo aparecen para el admin */}
+          {isAdmin && (
+            <>
+              {/* 📊 Estadísticas — historial de pedidos y gráficos de ventas */}
+              <li>
+                <button
+                  className={`nav-li ${currentPage === 'estadisticas' ? 'nav-li-active' : ''}`}
+                  title="Estadísticas"
+                  onClick={() => handlePageChange('estadisticas')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  <BarChart3 size={20} />
+                </button>
+              </li>
+
+              {/* 👤 Empleados — gestión del personal */}
+              <li>
+                <button
+                  className={`nav-li ${currentPage === 'empleados' ? 'nav-li-active' : ''}`}
+                  title="Gestión de Empleados"
+                  onClick={() => handlePageChange('empleados')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  <User size={20} />
+                </button>
+              </li>
+
+              {/* ➕ Productos — gestión de productos y categorías */}
+              <li>
+                <button
+                  className={`nav-li ${currentPage === 'productos' ? 'nav-li-active' : ''}`}
+                  title="Gestión de Productos"
+                  onClick={() => handlePageChange('productos')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  <Plus size={20} />
+                </button>
+              </li>
+            </>
+          )}
         </ul>
       </nav>
 
+      {/* ── SECCIÓN DERECHA: USUARIO + AYUDA + SALIR ── */}
       <div className="actions-container">
-        {/* Botón carrito: abre el sidebar del carrito y muestra badge con total de items */}
-        <button onClick={() => setCartOpen(true)} className="cart-button">
-          <ShoppingCart />
-          {getTotalItems() > 0 && <span className="cart-badge">{getTotalItems()}</span>}
-        </button>
-        {/* Botón que abre/cierra el menú mobile */}
+        {currentUser ? (
+          <div className="nav-user">
+
+            {/* Nombre y teléfono del usuario logueado */}
+            <div className="nav-user-info">
+              <span className="nav-username">{currentUser.name}</span>
+              {currentUser.phone && <span className="nav-userphone">{currentUser.phone}</span>}
+            </div>
+
+            {/* ❓ Botón de ayuda — abre popup con link a WhatsApp */}
+            <div className="contact-wrapper">
+              <button
+                className="contact-button"
+                title="Ayuda / Contacto"
+                onClick={() => setContactOpen(!contactOpen)}
+              >
+                <HelpCircle size={20} />
+              </button>
+
+              {/* Popup de contacto: solo visible cuando contactOpen === true */}
+              {contactOpen && (
+                <div className="contact-modal">
+                  <p>¿Estás teniendo inconvenientes con RestSoft? Ponte en contacto con nosotros.</p>
+                  <a
+                    href="https://wa.me/3865616350"
+                    target="_blank"           // abre en nueva pestaña
+                    rel="noopener noreferrer" // seguridad al abrir links externos
+                    className="whatsapp-button"
+                  >
+                    <MessageCircle size={18} />
+                    WhatsApp
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Botón Salir: ejecuta logout y redirige a la raíz "/" */}
+            <button
+              className="logout-button"
+              onClick={() => { if (onLogout) onLogout(); navigate('/'); }}
+            >
+              Salir
+            </button>
+          </div>
+        ) : (
+          // Si no hay sesión, muestra botón para ir a login
+          <button className="login-button" onClick={() => navigate('/')}>Ingresar</button>
+        )}
+
+        {/* Botón hamburguesa — solo visible en mobile, alterna menuOpen */}
         <button onClick={() => setMenuOpen(!menuOpen)} className="menu-button">
           {menuOpen ? <XIcon /> : <MenuIcon />}
         </button>
       </div>
 
-      {/* Menú responsive: sólo se renderiza si `menuOpen` es true */}
+      {/* ── MENÚ MOBILE — mismos íconos que el nav desktop ── */}
       {menuOpen && (
         <nav className="nav-mobile">
           <ul className="nav-ul">
             <li>
-              <a href="#inicio" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('inicio'); handleLinkClick(); }}>Inicio</a>
+              <button
+                className={`nav-li ${currentPage === 'salon' ? 'nav-li-active' : ''}`}
+                onClick={() => handlePageChange('salon')}
+                title="Pedidos"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                <Utensils size={20} />
+              </button>
             </li>
-            <li>
-              <a href="#menu" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('menu'); handleLinkClick(); }}>Menu</a>
-            </li>
-            <li>
-              <Link to="/salon" className="nav-li" onClick={handleLinkClick}>Salón</Link>
-            </li>
-            <li>
-              <a href="#nosotros" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('nosotros'); handleLinkClick(); }}>Nosotros</a>
-            </li>
-            <li>
-              <a href="#contacto" className="nav-li" onClick={(e) => { e.preventDefault(); handleNavTo('contacto'); handleLinkClick(); }}>Contacto</a>
-            </li>
+            {isAdmin && (
+              <>
+                <li>
+                  <button
+                    className={`nav-li ${currentPage === 'estadisticas' ? 'nav-li-active' : ''}`}
+                    onClick={() => handlePageChange('estadisticas')}
+                    title="Estadísticas"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    <BarChart3 size={20} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-li ${currentPage === 'empleados' ? 'nav-li-active' : ''}`}
+                    onClick={() => handlePageChange('empleados')}
+                    title="Gestión de Empleados"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    <User size={20} />
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={`nav-li ${currentPage === 'productos' ? 'nav-li-active' : ''}`}
+                    onClick={() => handlePageChange('productos')}
+                    title="Gestión de Productos"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
       )}

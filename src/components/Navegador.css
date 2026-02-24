@@ -1,11 +1,14 @@
 /* ==================== HEADER ==================== */
 header {
-  background: linear-gradient(to right, #ea580c, #dc2626);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
   position: relative;
+  z-index: 1100;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(13, 148, 136, 0.3);
 }
 
 /* ==================== LOGO ==================== */
@@ -19,14 +22,15 @@ header {
 .logo-container img {
   width: 40px;
   height: 40px;
-  color: white;
+  color: #0d9488;
 }
 
 .logo-container p {
   font-size: 1.5rem;
-  font-weight: bold;
+  font-weight: 800;
   color: white;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
 /* ==================== NAVEGACIÓN DESKTOP ==================== */
@@ -45,18 +49,35 @@ nav {
 }
 
 .nav-li {
-  color: white;
+  color: rgba(148, 163, 184, 0.9);
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: 500;
-  transition: opacity 0.3s ease;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.nav-li svg {
+  color: inherit;
 }
 
 .nav-li:hover {
-  opacity: 0.8;
+  color: #0d9488;
 }
 
-/* ==================== ACCIONES (Carrito y Menú) ==================== */
+.nav-li-active,
+.nav-li-active svg {
+  color: #0d9488 !important;
+}
+
+.nav-li:active,
+.nav-li:active svg {
+  color: white !important;
+  opacity: 1;
+}
+
+/* ==================== ACCIONES ==================== */
 .actions-container {
   display: flex;
   align-items: center;
@@ -72,7 +93,7 @@ nav {
   align-items: center;
   justify-content: center;
   transition: opacity 0.3s ease;
-  position: relative; /* necesario para posicionar el badge */
+  position: relative;
 }
 
 .actions-container button:hover {
@@ -86,12 +107,120 @@ nav {
   stroke-width: 2;
 }
 
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.nav-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+}
+
+.nav-userphone {
+  font-size: 12px;
+  opacity: 0.7;
+  color: #94a3b8;
+}
+
+.contact-wrapper {
+  position: relative;
+}
+
+.contact-button {
+  background: rgba(13, 148, 136, 0.15);
+  color: #0d9488;
+  border: 1px solid rgba(13, 148, 136, 0.3);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-button:hover {
+  background: rgba(13, 148, 136, 0.25);
+  border-color: rgba(13, 148, 136, 0.5);
+  color: #0d9488;
+}
+
+.contact-modal {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  min-width: 260px;
+  z-index: 100;
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  animation: slideDown 0.2s ease;
+}
+
+.contact-modal p {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.whatsapp-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #25D366;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.whatsapp-button:hover {
+  background: #20bd5a;
+  color: white;
+}
+
+.logout-button,
+.login-button {
+  background: rgba(13, 148, 136, 0.15);
+  color: #0d9488;
+  border: 1px solid rgba(13, 148, 136, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.logout-button:hover,
+.login-button:hover {
+  background: rgba(13, 148, 136, 0.25);
+  border-color: rgba(13, 148, 136, 0.5);
+}
+
 /* Badge del carrito */
 .cart-button .cart-badge {
   position: absolute;
   top: -6px;
   right: -6px;
-  background: #ff6b35;
+  background: #0d9488;
   color: white;
   min-width: 20px;
   height: 20px;
@@ -102,7 +231,7 @@ nav {
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   animation: pop 220ms cubic-bezier(.2,.8,.2,1);
 }
 
@@ -112,9 +241,8 @@ nav {
   100% { transform: scale(1); }
 }
 
-/* Ocultar menú hamburguesa en desktop */
-.actions-container .menu-button{
-    display: none;
+.actions-container .menu-button {
+  display: none;
 }
 
 /* ==================== NAVEGACIÓN MÓVIL ==================== */
@@ -122,28 +250,26 @@ nav {
   display: none;
 }
 
-/* ==================== RESPONSIVE (< 768px) ==================== */
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-  /* Ocultar navegación desktop */
   nav:not(.nav-mobile) {
     display: none;
   }
 
-  /* Mostrar botón hamburguesa */
   .actions-container .menu-button {
     display: flex;
   }
 
-  /* Menú móvil dropdown */
   .nav-mobile {
     display: block;
     position: absolute;
     top: 100%;
     left: 0;
     width: 100%;
-    background-color: #ff6b35;
-    border-top: 2px solid rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    border-top: 1px solid rgba(13, 148, 136, 0.3);
     animation: slideDown 0.3s ease;
+    z-index: 999;
   }
 
   .nav-mobile .nav-ul {
@@ -159,14 +285,20 @@ nav {
   .nav-mobile .nav-li {
     display: block;
     padding: 1rem 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #94a3b8;
   }
 
   .nav-mobile .nav-li:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(13, 148, 136, 0.1);
+    color: #0d9488;
   }
 
-  /* Ajustar padding del header en móvil */
+  .nav-mobile .nav-li-active,
+  .nav-mobile .nav-li-active svg {
+    color: #0d9488 !important;
+  }
+
   header {
     padding: 1rem 1.5rem;
   }
@@ -176,14 +308,7 @@ nav {
   }
 }
 
-/* ==================== ANIMACIÓN ==================== */
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

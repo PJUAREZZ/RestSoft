@@ -1,0 +1,221 @@
+.configurar-mesas-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.configurar-mesas-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+  animation: modalSlideIn 0.3s ease;
+  border: 1px solid #e5e7eb;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.configurar-mesas-modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.configurar-mesas-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.configurar-mesas-modal .close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.configurar-mesas-modal .close-btn:hover {
+  color: #1f2937;
+  transform: scale(1.1);
+}
+
+.mesas-form {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mesas-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mesas-form .form-group label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.mesas-form .form-group input {
+  padding: 0.75rem;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.mesas-form .form-group input:focus {
+  outline: none;
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.mesas-form .form-group small {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.form-info {
+  background: #f9fafb;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #1e40af;
+}
+
+.form-info p {
+  margin: 0.5rem 0;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.form-info p:last-child {
+  margin-bottom: 0;
+}
+
+.form-info strong {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.form-info .info-success {
+  color: #166534;
+  background: #f0fdf4;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+  border-left: 4px solid #0d9488;
+}
+
+.form-info .info-warning {
+  color: #92400e;
+  background: #fef3c7;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+  border-left: 4px solid #f59e0b;
+}
+
+.mensaje {
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.mensaje.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-cancelar,
+.btn-confirmar {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.btn-cancelar {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-cancelar:hover {
+  background: #d1d5db;
+}
+
+.btn-confirmar {
+  background: #1e40af;
+  color: white;
+}
+
+.btn-confirmar:hover {
+  background: #1e3a8a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+}
+
+@media (max-width: 600px) {
+  .configurar-mesas-modal {
+    border-radius: 8px;
+  }
+
+  .configurar-mesas-modal .modal-header {
+    padding: 1.5rem;
+  }
+
+  .configurar-mesas-modal .modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .mesas-form {
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .form-actions {
+    grid-template-columns: 1fr;
+  }
+}

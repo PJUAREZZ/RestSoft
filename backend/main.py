@@ -1,26 +1,23 @@
 """
 backend/main.py
 ----------------
-API REST simple construida con FastAPI que gestiona productos y pedidos.
+API REST construida con FastAPI que gestiona productos, pedidos, empleados y categorías.
 
-Resumen:
-- Inicializa una base de datos SQLite (`negocio.db`) con 3 tablas: `productos`, `pedidos` y `pedido_detalle`.
-- Expone endpoints para crear/leer/actualizar productos y para crear/listar/eliminar pedidos.
-- Usa Pydantic (`BaseModel`) para validar los datos entrantes (payloads JSON).
+Tablas:
+- productos: catálogo de productos con categoría
+- categorias: categorías dinámicas de productos
+- pedidos: cabecera de cada pedido (salon, delivery, mostrador)
+- pedido_detalle: items de cada pedido
+- pedidos_salon: metadatos de pedidos en salón (mesa, mozo, personas)
+- pedidos_delivery: metadatos de pedidos delivery (cliente, teléfono, dirección)
+- pedidos_mostrador: metadatos de pedidos en mostrador
+- empleados: empleados del negocio con rol y baja lógica
 
-Uso rápido (desde la raíz del proyecto):
-    1. Instalar dependencias: `pip3 install -r requirements.txt`
-    2. Levantar servidor en modo desarrollo: `python3 -m uvicorn main:app --reload`
-
-Comentarios en el código: cada función/endpoint tiene un comentario que explica su propósito.
+Uso rápido:
+    1. pip install -r requirements.txt
+    2. uvicorn main:app --reload
 """
 
-# IMPORTANTE: instalación de dependencias
-# Para instalar todas las dependencias necesarias, desde la terminal, ejecuta:
-#     pip install -r requirements.txt
-# Por último ejecuta el comando `uvicorn main:app --reload` para levantar el servidor de la API
-
-# Importamos todas las librerías que utilizaremos
 from fastapi import FastAPI, HTTPException
 import sqlite3
 from pydantic import BaseModel
@@ -28,37 +25,58 @@ from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
-
-
-# Nombre del archivo SQLite que actúa como base de datos local
 DB_NAME = "negocio.db"
 
-# Esta funcion inicializa la conxion a la base de datos de SQLite y crea las tablas necesarias para el proyecto (productos, pedidos, pedido_detalle)
-def init_db():
-    """Crea las tablas necesarias en la base de datos si no existen.
 
-    Tablas creadas:
-    - productos: contiene la información de cada producto (nombre, precio, imagen, etc.)
-    - pedidos: cabeceras de pedidos realizados
-    - pedido_detalle: items asociados a cada pedido (relación pedidos<->productos)
-    """
+# ─────────────────────────────────────────────
+#  INICIALIZACIÓN DE BASE DE DATOS
+# ─────────────────────────────────────────────
+
+def init_db():
+    """Crea todas las tablas necesarias si no existen."""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
 
-    # creacion Tabla PRODUCTOS
+    # ── CATEGORIAS ──────────────────────────────
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS categorias (
+            categoria_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE,
+            descripcion TEXT,
+            fecha_creacion TEXT NOT NULL
+        )
+    """)
+
+    # ── PRODUCTOS ───────────────────────────────
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS productos (
             producto_id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL,
             descripcion TEXT,
             precio REAL NOT NULL,
+            costo REAL,
             imagen TEXT,
             categoria TEXT NOT NULL,
             fecha_creacion TEXT NOT NULL
         )
     """)
-    
-    # creacion Tabla PEDIDOS
+
+    # ── EMPLEADOS ───────────────────────────────
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS empleados (
+            empleado_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            apellido TEXT NOT NULL,
+            dni TEXT UNIQUE,
+            email TEXT UNIQUE,
+            telefono TEXT,
+            rol TEXT NOT NULL,
+            activo INTEGER DEFAULT 1,
+            fecha_creacion TEXT NOT NULL
+        )
+    """)
+
+    # ── PEDIDOS (cabecera) ───────────────────────
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pedidos (
             pedido_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,11 +84,15 @@ def init_db():
             direccion TEXT NOT NULL,
             total REAL NOT NULL,
             fecha_pedido TEXT NOT NULL,
-            origen TEXT
+            origen TEXT,
+            telefono TEXT,
+            camarero TEXT,
+            comentario TEXT,
+            cargado_por TEXT
         )
     """)
-    
-    # creacion Tabla PEDIDO_DETALLE
+
+    # ── PEDIDO_DETALLE ───────────────────────────
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pedido_detalle (
             detalle_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,12 +100,13 @@ def init_db():
             producto_id INTEGER NOT NULL,
             cantidad INTEGER NOT NULL,
             precio_unitario REAL NOT NULL,
+            comentario TEXT,
             FOREIGN KEY (pedido_id) REFERENCES pedidos(pedido_id),
             FOREIGN KEY (producto_id) REFERENCES productos(producto_id)
         )
     """)
 
-    # creacion Tabla PEDIDOS_SALON para almacenar metadatos de pedidos realizados en el salón
+    # ── PEDIDOS_SALON ────────────────────────────
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pedidos_salon (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,21 +120,60 @@ def init_db():
         )
     """)
 
-    conn.commit()  # Guardar cambios
-    conn.close()   # Cerrar conexión
-    print("Base de datos inicializada")
+    # ── PEDIDOS_DELIVERY ─────────────────────────
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pedidos_delivery (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL,
+            nombre_cliente TEXT,
+            telefono TEXT,
+            direccion TEXT,
+            total REAL,
+            fecha TEXT,
+            FOREIGN KEY (pedido_id) REFERENCES pedidos(pedido_id)
+        )
+    """)
 
-    # Si la base ya existía sin la columna 'origen', intentamos agregarla (seguro en sqlite)
+    # ── PEDIDOS_MOSTRADOR ────────────────────────
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pedidos_mostrador (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL,
+            nombre_cliente TEXT,
+            total REAL,
+            fecha TEXT,
+            FOREIGN KEY (pedido_id) REFERENCES pedidos(pedido_id)
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+    print("Base de datos inicializada correctamente")
+
+    # Agregar columnas faltantes en tablas existentes (migraciones seguras)
     try:
         conn2 = sqlite3.connect(DB_NAME)
         cursor2 = conn2.cursor()
+
         cursor2.execute("PRAGMA table_info(pedidos)")
         cols = [row[1] for row in cursor2.fetchall()]
-        if 'origen' not in cols:
-            cursor2.execute("ALTER TABLE pedidos ADD COLUMN origen TEXT")
-            conn2.commit()
+        for col in ['origen', 'telefono', 'camarero', 'comentario', 'cargado_por']:
+            if col not in cols:
+                cursor2.execute(f"ALTER TABLE pedidos ADD COLUMN {col} TEXT")
+
+        cursor2.execute("PRAGMA table_info(productos)")
+        cols_prod = [row[1] for row in cursor2.fetchall()]
+        if 'costo' not in cols_prod:
+            cursor2.execute("ALTER TABLE productos ADD COLUMN costo REAL")
+
+        # Migración: agregar comentario a pedido_detalle si no existe
+        cursor2.execute("PRAGMA table_info(pedido_detalle)")
+        cols_det = [row[1] for row in cursor2.fetchall()]
+        if 'comentario' not in cols_det:
+            cursor2.execute("ALTER TABLE pedido_detalle ADD COLUMN comentario TEXT")
+
+        conn2.commit()
     except Exception:
-        # Si falla por cualquier razón, no rompemos la inicialización
         pass
     finally:
         try:
@@ -121,118 +183,177 @@ def init_db():
 
 
 def get_db_connection():
-    """Devuelve una conexión a la base de datos con `row_factory` configurado.
-
-    `sqlite3.Row` permite acceder a columnas por nombre (row['nombre']) además de por índice.
-    """
+    """Devuelve una conexión con row_factory para acceder columnas por nombre."""
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     return conn
 
-# Instancia de la aplicación FastAPI y configuración CORS
+
+# ─────────────────────────────────────────────
+#  INSTANCIA Y CORS
+# ─────────────────────────────────────────────
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En desarrollo permitimos cualquier origen; en producción especifica dominios
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Inicializar la base de datos (crea tablas si no existen)
 init_db()
 
-# Creamos un objeto Productos con sus respectivos atributos, utilizando el BaseModel de FastApi
-class Productos(BaseModel):
-    """Modelo Pydantic para validar la carga de un nuevo producto.
 
-    Campos:
-    - nombre: nombre del producto
-    - descripcion: texto descriptivo (opcional en DB, pero aquí se requiere cadena)
-    - precio: float
-    - imagen: ruta/URL o valor que identifica la imagen
-    - categoria: categoría para filtrado (pizza, sandwich, wrap, etc.)
-    """
+# ─────────────────────────────────────────────
+#  MODELOS PYDANTIC
+# ─────────────────────────────────────────────
+
+class Categoria(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+
+class Productos(BaseModel):
     nombre: str
     descripcion: str
     precio: float
+    costo: Optional[float] = None
     imagen: str
     categoria: str
 
-# Creamos un Objeto DetallePedido con sus respectivos atributos
+class ProductoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    precio: Optional[float] = None
+    costo: Optional[float] = None
+    imagen: Optional[str] = None
+    categoria: Optional[str] = None
+
+class Empleado(BaseModel):
+    nombre: str
+    apellido: str
+    dni: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    rol: str  # 'admin', 'mozo', 'cajero', 'cocina', etc.
+
+class EmpleadoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    dni: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    rol: Optional[str] = None
+
 class DetallePedido(BaseModel):
-    """Modelo para representar un item dentro del pedido (producto + cantidad)."""
     producto_id: int
     cantidad: int
+    comentario: Optional[str] = None
 
-# Creamos un Objeto Pedido con sus respectivos atributos
 class Pedido(BaseModel):
-    """Modelo que representa un pedido completo enviado desde el frontend.
-
-    - nombre_cliente: nombre de la persona
-    - direccion: dirección de entrega
-    - detalles: lista de `DetallePedido` con producto_id y cantidad
-    """
     nombre_cliente: str
     direccion: str
     detalles: list[DetallePedido]
-    origen: Optional[str] = None
-    # Campos opcionales específicos para salón (si el frontend los envía)
+    origen: Optional[str] = None       # 'salon', 'delivery', 'mostrador'
+    telefono: Optional[str] = None
+    camarero: Optional[str] = None
+    comentario: Optional[str] = None
+    cargado_por: Optional[str] = None
+    # Campos salón
     mesa: Optional[int] = None
     mozo: Optional[str] = None
     personas: Optional[int] = None
 
-class ProductoUpdate(BaseModel):
-    """Modelo para actualizaciones parciales de producto. Los campos son opcionales."""
-    nombre: Optional[str] = None
-    descripcion: Optional[str] = None
-    precio: Optional[float] = None
-    imagen: Optional[str] = None
-    categoria: Optional[str] = None
 
+# ─────────────────────────────────────────────
+#  RAÍZ
+# ─────────────────────────────────────────────
 
 @app.get("/")
 def root():
-    """Endpoint raíz. Sirve como verificación de que la API está funcionando."""
-    return {"mensaje": "Esta es la api de nuestra pagina"}
+    return {"mensaje": "API del negocio funcionando correctamente"}
+
+
+# ─────────────────────────────────────────────
+#  CATEGORÍAS
+# ─────────────────────────────────────────────
+
+@app.post("/categorias", status_code=201)
+def crear_categoria(categoria: Categoria):
+    """Crea una nueva categoría de productos."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO categorias (nombre, descripcion, fecha_creacion) VALUES (?, ?, ?)",
+            (categoria.nombre, categoria.descripcion, datetime.now().isoformat())
+        )
+        conn.commit()
+        categoria_id = cursor.lastrowid
+        return {"mensaje": "Categoría creada exitosamente", "categoria_id": categoria_id}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Ya existe una categoría con ese nombre")
+    finally:
+        conn.close()
+
+
+@app.get("/categorias", status_code=200)
+def listar_categorias():
+    """Devuelve todas las categorías disponibles."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM categorias ORDER BY nombre ASC")
+    categorias = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return categorias
+
+
+@app.delete("/categorias/{categoria_id}", status_code=200)
+def eliminar_categoria(categoria_id: int):
+    """Elimina una categoría por su ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM categorias WHERE categoria_id = ?", (categoria_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    cursor.execute("DELETE FROM categorias WHERE categoria_id = ?", (categoria_id,))
+    conn.commit()
+    conn.close()
+    return {"mensaje": "Categoría eliminada exitosamente"}
+
+
+# ─────────────────────────────────────────────
+#  PRODUCTOS
+# ─────────────────────────────────────────────
 
 @app.post("/productos", status_code=201)
 def agregar_productos(producto: Productos):
-    """Crea un nuevo producto en la tabla `productos`.
-
-    Recibe un payload JSON validado por `Productos` y lo inserta en la DB.
-    Devuelve el `producto_id` creado.
-    """
+    """Crea un nuevo producto."""
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    # Insertar registro usando parámetros (previene inyección SQL)
     cursor.execute(
-        """INSERT INTO productos (nombre, descripcion, precio, imagen, categoria, fecha_creacion)
-           VALUES(?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO productos (nombre, descripcion, precio, costo, imagen, categoria, fecha_creacion)
+           VALUES(?, ?, ?, ?, ?, ?, ?)""",
         (
             producto.nombre,
             producto.descripcion,
             producto.precio,
+            producto.costo,
             producto.imagen,
             producto.categoria,
             datetime.now().isoformat(),
         ),
     )
-
     producto_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return {"mensaje": "Producto creado exitosamente", "producto_id": producto_id}
-    
-    
+
 
 @app.get("/productos", status_code=200)
 def mostrar_productos():
-    """Devuelve la lista completa de productos.
-
-    Convierte cada fila a diccionario para facilitar su uso en el frontend.
-    """
+    """Devuelve todos los productos. Opcionalmente filtra por categoría usando ?categoria=nombre"""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM productos")
@@ -241,36 +362,203 @@ def mostrar_productos():
     return productos
 
 
+@app.get("/productos/categoria/{nombre_categoria}", status_code=200)
+def productos_por_categoria(nombre_categoria: str):
+    """Devuelve los productos filtrados por categoría."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos WHERE categoria = ?", (nombre_categoria,))
+    productos = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return productos
+
+
 @app.get("/productos/{producto_id}", status_code=200)
 def mostrar_producto_individual(producto_id: int):
-    """Devuelve un producto por su `producto_id`.
-
-    Si no existe, devuelve un 404.
-    """
+    """Devuelve un producto por su ID."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM productos WHERE producto_id = ?", (producto_id,))
-    productoIndividual = cursor.fetchone()
+    producto = cursor.fetchone()
     conn.close()
-    if productoIndividual is None:
-        raise HTTPException(status_code=404, detail={"No se encontro el producto"})
-    return dict(productoIndividual)
+    if producto is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return dict(producto)
 
-@app.post("/pedidos")
+
+@app.put("/productos/{producto_id}", status_code=200)
+def actualizar_producto(producto_id: int, producto: ProductoUpdate):
+    """Actualiza campos de un producto de forma parcial."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos WHERE producto_id = ?", (producto_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    campos = []
+    valores = []
+    if producto.nombre is not None:
+        campos.append("nombre = ?"); valores.append(producto.nombre)
+    if producto.descripcion is not None:
+        campos.append("descripcion = ?"); valores.append(producto.descripcion)
+    if producto.precio is not None:
+        campos.append("precio = ?"); valores.append(producto.precio)
+    if producto.costo is not None:
+        campos.append("costo = ?"); valores.append(producto.costo)
+    if producto.imagen is not None:
+        campos.append("imagen = ?"); valores.append(producto.imagen)
+    if producto.categoria is not None:
+        campos.append("categoria = ?"); valores.append(producto.categoria)
+
+    if not campos:
+        conn.close()
+        return {"mensaje": "No se proporcionaron campos para actualizar"}
+
+    valores.append(producto_id)
+    cursor.execute(f"UPDATE productos SET {', '.join(campos)} WHERE producto_id = ?", tuple(valores))
+    conn.commit()
+    conn.close()
+    return {"mensaje": "Producto actualizado exitosamente", "producto_id": producto_id}
+
+
+@app.delete("/productos/{producto_id}", status_code=200)
+def eliminar_producto(producto_id: int):
+    """Elimina un producto por su ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM productos WHERE producto_id = ?", (producto_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    cursor.execute("DELETE FROM productos WHERE producto_id = ?", (producto_id,))
+    conn.commit()
+    conn.close()
+    return {"mensaje": "Producto eliminado exitosamente", "producto_id": producto_id}
+
+
+# ─────────────────────────────────────────────
+#  EMPLEADOS
+# ─────────────────────────────────────────────
+
+@app.post("/empleados", status_code=201)
+def crear_empleado(empleado: Empleado):
+    """Crea un nuevo empleado."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """INSERT INTO empleados (nombre, apellido, dni, email, telefono, rol, fecha_creacion)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                empleado.nombre,
+                empleado.apellido,
+                empleado.dni,
+                empleado.email,
+                empleado.telefono,
+                empleado.rol,
+                datetime.now().isoformat()
+            )
+        )
+        conn.commit()
+        empleado_id = cursor.lastrowid
+        return {"mensaje": "Empleado creado exitosamente", "empleado_id": empleado_id}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=400, detail="Ya existe un empleado con ese DNI o email")
+    finally:
+        conn.close()
+
+
+@app.get("/empleados", status_code=200)
+def listar_empleados():
+    """Devuelve todos los empleados activos."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM empleados WHERE activo = 1 ORDER BY apellido ASC")
+    empleados = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return empleados
+
+
+@app.get("/empleados/{empleado_id}", status_code=200)
+def obtener_empleado(empleado_id: int):
+    """Devuelve un empleado por su ID."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM empleados WHERE empleado_id = ?", (empleado_id,))
+    empleado = cursor.fetchone()
+    conn.close()
+    if empleado is None:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    return dict(empleado)
+
+
+@app.put("/empleados/{empleado_id}", status_code=200)
+def actualizar_empleado(empleado_id: int, empleado: EmpleadoUpdate):
+    """Actualiza datos de un empleado de forma parcial."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM empleados WHERE empleado_id = ?", (empleado_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+
+    campos = []
+    valores = []
+    if empleado.nombre is not None:
+        campos.append("nombre = ?"); valores.append(empleado.nombre)
+    if empleado.apellido is not None:
+        campos.append("apellido = ?"); valores.append(empleado.apellido)
+    if empleado.dni is not None:
+        campos.append("dni = ?"); valores.append(empleado.dni)
+    if empleado.email is not None:
+        campos.append("email = ?"); valores.append(empleado.email)
+    if empleado.telefono is not None:
+        campos.append("telefono = ?"); valores.append(empleado.telefono)
+    if empleado.rol is not None:
+        campos.append("rol = ?"); valores.append(empleado.rol)
+
+    if not campos:
+        conn.close()
+        return {"mensaje": "No se proporcionaron campos para actualizar"}
+
+    valores.append(empleado_id)
+    cursor.execute(f"UPDATE empleados SET {', '.join(campos)} WHERE empleado_id = ?", tuple(valores))
+    conn.commit()
+    conn.close()
+    return {"mensaje": "Empleado actualizado exitosamente", "empleado_id": empleado_id}
+
+
+@app.delete("/empleados/{empleado_id}", status_code=200)
+def eliminar_empleado(empleado_id: int):
+    """Baja lógica del empleado (no se borra, se desactiva)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM empleados WHERE empleado_id = ?", (empleado_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    cursor.execute("UPDATE empleados SET activo = 0 WHERE empleado_id = ?", (empleado_id,))
+    conn.commit()
+    conn.close()
+    return {"mensaje": "Empleado dado de baja exitosamente", "empleado_id": empleado_id}
+
+
+# ─────────────────────────────────────────────
+#  PEDIDOS
+# ─────────────────────────────────────────────
+
+@app.post("/pedidos", status_code=201)
 def cargar_pedido(pedido: Pedido):
-    """Crea un pedido a partir del payload recibido.
-
-    Flujo:
-    1. Recorre los `detalles` para validar que cada `producto_id` exista y calcular el total.
-    2. Inserta la fila en `pedidos` con el total calculado.
-    3. Inserta cada item en `pedido_detalle` con el `precio_unitario` actual del producto.
-
-    Si algún producto no existe devuelve 404.
+    """Crea un pedido y lo registra en la tabla correspondiente según su origen:
+    - salon      → pedidos_salon
+    - delivery   → pedidos_delivery
+    - mostrador  → pedidos_mostrador
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Calcular total y validar existencia de productos
+    # Validar productos y calcular total
     total = 0
     for item in pedido.detalles:
         cursor.execute("SELECT precio FROM productos WHERE producto_id = ?", (item.producto_id,))
@@ -280,137 +568,103 @@ def cargar_pedido(pedido: Pedido):
             raise HTTPException(status_code=404, detail=f"Producto con ID {item.producto_id} no encontrado")
         total += producto["precio"] * item.cantidad
 
-    # Insertar cabecera del pedido (incluye 'origen' si fue enviado)
+    # Insertar cabecera en pedidos
     cursor.execute(
-        """INSERT INTO pedidos (nombre_cliente, direccion, total, fecha_pedido, origen)
-           VALUES (?, ?, ?, ?, ?)""",
-        (pedido.nombre_cliente, pedido.direccion, total, datetime.now().isoformat(), pedido.origen or ""),
+        """INSERT INTO pedidos (nombre_cliente, direccion, total, fecha_pedido, origen, telefono, camarero, comentario, cargado_por)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            pedido.nombre_cliente,
+            pedido.direccion,
+            total,
+            datetime.now().isoformat(),
+            pedido.origen or "",
+            pedido.telefono or "",
+            pedido.camarero or "",
+            pedido.comentario or "",
+            pedido.cargado_por or "",
+        ),
     )
     pedido_id = cursor.lastrowid
 
-    # Insertar detalles del pedido (precio unitario tomado del producto en DB)
+    # Insertar detalles (con comentario por producto si existe)
     for item in pedido.detalles:
         cursor.execute("SELECT precio FROM productos WHERE producto_id = ?", (item.producto_id,))
         precio = cursor.fetchone()["precio"]
         cursor.execute(
-            """INSERT INTO pedido_detalle(pedido_id, producto_id, cantidad, precio_unitario)
-               VALUES (?, ?, ?, ?)""",
-            (pedido_id, item.producto_id, item.cantidad, precio),
+            """INSERT INTO pedido_detalle(pedido_id, producto_id, cantidad, precio_unitario, comentario)
+               VALUES (?, ?, ?, ?, ?)""",
+            (pedido_id, item.producto_id, item.cantidad, precio, item.comentario or None),
         )
 
-    # Si el pedido proviene del salón, guardamos metadatos en la tabla `pedidos_salon`
-    if (pedido.origen or '').lower() == 'salon':
-        # Preferimos campos explícitos si el frontend los envía
-        mesa_val = None
-        mozo_val = None
-        personas_val = None
-        try:
-            import re
-            if pedido.mesa is not None:
-                mesa_val = int(pedido.mesa)
-            else:
-                # intentar extraer de nombre_cliente, ej. 'Mesa 5'
-                m = re.search(r"Mesa\s*(\d+)", pedido.nombre_cliente or "", re.I)
-                if m:
-                    mesa_val = int(m.group(1))
+    origen = (pedido.origen or "").lower()
 
-            if pedido.mozo:
-                mozo_val = pedido.mozo
-            else:
-                # intentar extraer de direccion "Mozo: X | Personas: Y"
-                parts = (pedido.direccion or "").split('|')
-                for p in parts:
-                    p = p.strip()
-                    if p.lower().startswith('mozo:'):
-                        mozo_val = p.split(':', 1)[1].strip()
-                    if p.lower().startswith('personas:'):
-                        try:
-                            personas_val = int(p.split(':', 1)[1].strip())
-                        except Exception:
-                            pass
-                if personas_val is None:
-                    m2 = re.search(r"Personas:?\s*(\d+)", pedido.direccion or "", re.I)
-                    if m2:
-                        try:
-                            personas_val = int(m2.group(1))
-                        except Exception:
-                            pass
-        except Exception:
-            mesa_val = None
-            mozo_val = None
-            personas_val = None
+    # ── Metadatos según origen ───────────────────
+    if origen == "salon":
+        import re
+        mesa_val = pedido.mesa
+        mozo_val = pedido.mozo or ""
+        personas_val = pedido.personas
+
+        if mesa_val is None:
+            m = re.search(r"Mesa\s*(\d+)", pedido.nombre_cliente or "", re.I)
+            if m:
+                mesa_val = int(m.group(1))
+
+        if not mozo_val:
+            parts = (pedido.direccion or "").split('|')
+            for p in parts:
+                p = p.strip()
+                if p.lower().startswith('mozo:'):
+                    mozo_val = p.split(':', 1)[1].strip()
+                if p.lower().startswith('personas:'):
+                    try:
+                        personas_val = int(p.split(':', 1)[1].strip())
+                    except Exception:
+                        pass
 
         cursor.execute(
             """INSERT INTO pedidos_salon (pedido_id, mesa, mozo, personas, total, fecha)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            (pedido_id, mesa_val, mozo_val or '', personas_val, total, datetime.now().isoformat()),
+            (pedido_id, mesa_val, mozo_val, personas_val, total, datetime.now().isoformat()),
+        )
+
+    elif origen == "delivery":
+        cursor.execute(
+            """INSERT INTO pedidos_delivery (pedido_id, nombre_cliente, telefono, direccion, total, fecha)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (
+                pedido_id,
+                pedido.nombre_cliente,
+                pedido.telefono or "",
+                pedido.direccion or "",
+                total,
+                datetime.now().isoformat()
+            ),
+        )
+
+    elif origen == "mostrador":
+        cursor.execute(
+            """INSERT INTO pedidos_mostrador (pedido_id, nombre_cliente, total, fecha)
+               VALUES (?, ?, ?, ?)""",
+            (pedido_id, pedido.nombre_cliente, total, datetime.now().isoformat()),
         )
 
     conn.commit()
     conn.close()
-    return {"mensaje": "Pedido Creado Correctamente", "pedido_id": pedido_id, "total": total}
+    return {"mensaje": "Pedido creado correctamente", "pedido_id": pedido_id, "total": total}
 
-@app.put("/productos/{producto_id}", status_code=200)
-def actualizar_producto(producto_id: int, producto: ProductoUpdate):
-    """Actualiza campos de un producto de forma parcial.
 
-    Construye dinámicamente la cláusula SET de la consulta UPDATE según los campos proporcionados.
-    Si no se envía ningún campo devuelve un mensaje informando que no hay cambios.
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Verificar existencia
-    cursor.execute("SELECT * FROM productos WHERE producto_id = ?", (producto_id,))
-    producto_existente = cursor.fetchone()
-    if producto_existente is None:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
-
-    campos_actualizar = []
-    valores = []
-    if producto.nombre is not None:
-        campos_actualizar.append("nombre = ?")
-        valores.append(producto.nombre)
-    if producto.descripcion is not None:
-        campos_actualizar.append("descripcion = ?")
-        valores.append(producto.descripcion)
-    if producto.precio is not None:
-        campos_actualizar.append("precio = ?")
-        valores.append(producto.precio)
-    if producto.imagen is not None:
-        campos_actualizar.append("imagen = ?")
-        valores.append(producto.imagen)
-    if producto.categoria is not None:
-        campos_actualizar.append("categoria = ?")
-        valores.append(producto.categoria)
-
-    if not campos_actualizar:
-        conn.close()
-        return {"mensaje": "No se proporcionaron campos para actualizar"}
-
-    valores.append(producto_id)
-    query = f"UPDATE productos SET {', '.join(campos_actualizar)} WHERE producto_id = ?"
-    cursor.execute(query, tuple(valores))
-    conn.commit()
-    conn.close()
-    return {"mensaje": "Producto actualizado exitosamente", "producto_id": producto_id}
-
-@app.get("/pedidos")
+@app.get("/pedidos", status_code=200)
 def mostrar_pedidos():
-    """Devuelve la lista de pedidos con sus items asociados.
-
-    Para cada pedido hace un JOIN con `pedido_detalle` y `productos` para añadir
-    información legible de cada item (nombre y categoría).
-    """
+    """Devuelve todos los pedidos con sus items, ordenados por fecha descendente."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pedidos")
+    cursor.execute("SELECT * FROM pedidos ORDER BY fecha_pedido DESC")
     pedidos = [dict(row) for row in cursor.fetchall()]
 
     for pedido in pedidos:
         cursor.execute(
-            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, p.nombre, p.categoria
+            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, pd.comentario, p.nombre, p.categoria
                FROM pedido_detalle pd
                JOIN productos p ON pd.producto_id = p.producto_id
                WHERE pd.pedido_id = ?""",
@@ -418,42 +672,96 @@ def mostrar_pedidos():
         )
         pedido["items"] = [dict(row) for row in cursor.fetchall()]
 
+        origen = (pedido.get("origen") or "").lower()
+
+        if origen == "salon":
+            cursor.execute("SELECT mesa, mozo, personas FROM pedidos_salon WHERE pedido_id = ?", (pedido["pedido_id"],))
+            row = cursor.fetchone()
+            if row:
+                pedido["mesa"] = row["mesa"]
+                pedido["mozo"] = row["mozo"]
+                pedido["personas"] = row["personas"]
+
+        elif origen == "delivery":
+            cursor.execute("SELECT telefono, direccion FROM pedidos_delivery WHERE pedido_id = ?", (pedido["pedido_id"],))
+            row = cursor.fetchone()
+            if row:
+                pedido["telefono_entrega"] = row["telefono"]
+                pedido["direccion_entrega"] = row["direccion"]
+
     conn.close()
     return pedidos
 
 
-@app.get("/pedidos_salon")
+@app.get("/pedidos/salon", status_code=200)
 def mostrar_pedidos_salon():
-    """Devuelve la lista de pedidos realizados en el salón, con metadatos (mesa, mozo, personas)
-
-    Para cada fila en `pedidos_salon` devuelve también los items asociados al pedido (nombre, cantidad, precio_unitario).
-    """
+    """Devuelve todos los pedidos del salón con sus items."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM pedidos_salon")
-    salon_rows = [dict(row) for row in cursor.fetchall()]
+    cursor.execute("SELECT * FROM pedidos_salon ORDER BY fecha DESC")
+    rows = [dict(row) for row in cursor.fetchall()]
 
-    for row in salon_rows:
-        pedido_id = row.get('pedido_id')
+    for row in rows:
         cursor.execute(
-            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, p.nombre, p.categoria
+            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, pd.comentario, p.nombre, p.categoria
                FROM pedido_detalle pd
                JOIN productos p ON pd.producto_id = p.producto_id
                WHERE pd.pedido_id = ?""",
-            (pedido_id,)
+            (row["pedido_id"],)
         )
-        row['items'] = [dict(r) for r in cursor.fetchall()]
+        row["items"] = [dict(r) for r in cursor.fetchall()]
 
     conn.close()
-    return salon_rows
+    return rows
 
-@app.delete("/pedidos/{pedido_id}")
+
+@app.get("/pedidos/delivery", status_code=200)
+def mostrar_pedidos_delivery():
+    """Devuelve todos los pedidos de delivery con sus items."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM pedidos_delivery ORDER BY fecha DESC")
+    rows = [dict(row) for row in cursor.fetchall()]
+
+    for row in rows:
+        cursor.execute(
+            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, pd.comentario, p.nombre, p.categoria
+               FROM pedido_detalle pd
+               JOIN productos p ON pd.producto_id = p.producto_id
+               WHERE pd.pedido_id = ?""",
+            (row["pedido_id"],)
+        )
+        row["items"] = [dict(r) for r in cursor.fetchall()]
+
+    conn.close()
+    return rows
+
+
+@app.get("/pedidos/mostrador", status_code=200)
+def mostrar_pedidos_mostrador():
+    """Devuelve todos los pedidos de mostrador con sus items."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM pedidos_mostrador ORDER BY fecha DESC")
+    rows = [dict(row) for row in cursor.fetchall()]
+
+    for row in rows:
+        cursor.execute(
+            """SELECT pd.producto_id, pd.cantidad, pd.precio_unitario, pd.comentario, p.nombre, p.categoria
+               FROM pedido_detalle pd
+               JOIN productos p ON pd.producto_id = p.producto_id
+               WHERE pd.pedido_id = ?""",
+            (row["pedido_id"],)
+        )
+        row["items"] = [dict(r) for r in cursor.fetchall()]
+
+    conn.close()
+    return rows
+
+
+@app.delete("/pedidos/{pedido_id}", status_code=200)
 def eliminar_pedido(pedido_id: int):
-    """Elimina un pedido y sus detalles asociados.
-
-    - Verifica existencia del pedido
-    - Borra los registros en `pedido_detalle` y luego la fila en `pedidos`
-    """
+    """Elimina un pedido y todos sus detalles asociados."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -463,11 +771,19 @@ def eliminar_pedido(pedido_id: int):
         conn.close()
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
-    # Borrar detalles primero (integridad referencial manual)
+    origen = (dict(pedido).get("origen") or "").lower()
+
     cursor.execute("DELETE FROM pedido_detalle WHERE pedido_id = ?", (pedido_id,))
-    # Borrar pedido
+
+    if origen == "salon":
+        cursor.execute("DELETE FROM pedidos_salon WHERE pedido_id = ?", (pedido_id,))
+    elif origen == "delivery":
+        cursor.execute("DELETE FROM pedidos_delivery WHERE pedido_id = ?", (pedido_id,))
+    elif origen == "mostrador":
+        cursor.execute("DELETE FROM pedidos_mostrador WHERE pedido_id = ?", (pedido_id,))
+
     cursor.execute("DELETE FROM pedidos WHERE pedido_id = ?", (pedido_id,))
 
     conn.commit()
     conn.close()
-    return {"mensaje": "Pedido cancelado exitosamente", "pedido_id": pedido_id}
+    return {"mensaje": "Pedido eliminado exitosamente", "pedido_id": pedido_id}

@@ -1,0 +1,417 @@
+/* ─── SECCIÓN PRINCIPAL ─── */
+.estadisticas-section {
+  padding: 3rem 1rem;
+  background: #0f172a;
+  min-height: calc(100vh - 72px);
+}
+
+.estadisticas-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.estadisticas-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.estadisticas-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0d9488;
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.estadisticas-subtitle {
+  color: #64748b;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* ─── TOGGLE VISTA ─── */
+.vista-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 0.3rem;
+  align-self: flex-start;
+}
+
+.vista-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.vista-btn:hover { color: #94a3b8; background: rgba(255,255,255,0.05); }
+
+.vista-btn.active {
+  background: #0d9488;
+  color: white;
+  box-shadow: 0 2px 8px rgba(13,148,136,0.3);
+}
+
+/* ─── FILTROS ─── */
+.estadisticas-filtros {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.filtro-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filtro-btn:hover {
+  border-color: rgba(13,148,136,0.4);
+  background: rgba(13,148,136,0.08);
+  color: #0d9488;
+}
+
+.filtro-btn.active {
+  background: #0d9488;
+  border-color: #0d9488;
+  color: white;
+  box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+}
+
+/* ─── ESTADOS ─── */
+.estadisticas-loading {
+  text-align: center;
+  color: #64748b;
+  padding: 3rem;
+  font-size: 1rem;
+}
+
+.estadisticas-error {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.2);
+  color: #f87171;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.sin-pedidos {
+  color: #64748b;
+  text-align: center;
+  padding: 3rem;
+  font-size: 1rem;
+}
+
+/* ─── LISTA DE PEDIDOS ─── */
+.pedidos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pedido-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.2s;
+}
+
+.pedido-card:hover { border-color: rgba(13,148,136,0.25); }
+
+.pedido-card--salon   { border-left: 3px solid #3b82f6; }
+.pedido-card--delivery { border-left: 3px solid #f59e0b; }
+.pedido-card--mostrador { border-left: 3px solid #a855f7; }
+
+.pedido-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.pedido-card__id-origen {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pedido-id {
+  font-weight: 700;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.pedido-origen {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+}
+
+.origen-salon    { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+.origen-delivery { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+.origen-mostrador { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
+
+.pedido-total {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0d9488;
+}
+
+.pedido-card__fechas {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.pedido-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.meta-label { color: #64748b; font-weight: 500; }
+.meta-value { color: #94a3b8; }
+.meta-value--user { color: #0d9488; font-weight: 600; }
+
+.pedido-card__detalles h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detalle-block {
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detalle-row {
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.det-label {
+  color: #64748b;
+  font-weight: 600;
+  margin-right: 0.3rem;
+}
+
+.pedido-items {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pedido-items strong {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  padding: 0.2rem 0;
+  border-bottom: 1px dashed rgba(255,255,255,0.04);
+}
+
+.pedido-total-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.pedido-total-final strong {
+  color: #0d9488;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+/* ─── KPIs ─── */
+.kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0d9488, #0f766e);
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  line-height: 1;
+}
+
+/* ─── SELECTOR DE PERÍODO ─── */
+.periodo-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.periodo-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.periodo-btn:hover {
+  border-color: rgba(13,148,136,0.4);
+  color: #0d9488;
+  background: rgba(13,148,136,0.06);
+}
+
+.periodo-btn.active {
+  background: rgba(13,148,136,0.15);
+  border-color: #0d9488;
+  color: #0d9488;
+}
+
+/* ─── GRÁFICOS ─── */
+.graficos-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.chart-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 1.25rem 0;
+}
+
+.chart-tooltip {
+  background: #1e293b;
+  border: 1px solid rgba(13,148,136,0.3);
+  border-radius: 8px;
+  padding: 0.65rem 0.9rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.chart-tooltip__label {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0 0 0.35rem 0;
+  font-weight: 600;
+}
+
+.chart-tooltip__value {
+  font-size: 0.9rem;
+  margin: 0.15rem 0;
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 700px) {
+  .kpis-grid { grid-template-columns: repeat(2, 1fr); }
+  .estadisticas-header { flex-direction: column; }
+  .pedido-card__fechas { gap: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  .kpis-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-value { font-size: 1.3rem; }
+  .estadisticas-title { font-size: 1.5rem; }
+}

@@ -1,0 +1,242 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.role-selector-container {
+  display: flex;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* ===== LADO IZQUIERDO ===== */
+.role-left {
+  flex: 1;
+  background: #1a1a2e;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.role-left::before {
+  content: '';
+  position: absolute;
+  bottom: -80px;
+  left: -80px;
+  width: 400px;
+  height: 400px;
+  background: rgba(30, 64, 175, 0.3);
+  border-radius: 50%;
+}
+
+.role-left::after {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  background: rgba(13, 148, 136, 0.2);
+  border-radius: 50%;
+}
+
+.role-left-content {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+}
+
+.role-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 2.5rem;
+  letter-spacing: -0.5px;
+}
+
+.role-hero-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #0d9488;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.role-hero-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 2.5rem;
+}
+
+.role-hero-title span {
+  color: #0d9488;
+}
+
+.role-features-title {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.role-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.role-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.role-feature-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0d9488;
+  flex-shrink: 0;
+}
+
+/* ===== LADO DERECHO ===== */
+.role-right {
+  width: 480px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2.5rem;
+}
+
+.role-selector-box {
+  width: 100%;
+}
+
+.role-selector-box h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.4rem;
+}
+
+.role-selector-box > p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+/* ===== BOTONES DE ROL ===== */
+.role-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.role-btn {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.role-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.role-btn-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.role-btn-text h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.2rem;
+}
+
+.role-btn-text p {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.role-btn--admin .role-btn-icon {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.role-btn--admin:hover {
+  border-color: #1e40af;
+  background: #eff6ff;
+}
+
+.role-btn--user .role-btn-icon {
+  background: #f0fdf9;
+  color: #0d9488;
+}
+
+.role-btn--user:hover {
+  border-color: #0d9488;
+  background: #f0fdf9;
+}
+
+.role-footer-text {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .role-selector-container {
+    flex-direction: column;
+  }
+
+  .role-left {
+    padding: 2rem 1.5rem;
+    min-height: auto;
+  }
+
+  .role-hero-title {
+    font-size: 1.75rem;
+  }
+
+  .role-right {
+    width: 100%;
+    padding: 2rem 1.5rem;
+  }
+}
