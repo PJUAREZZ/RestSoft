@@ -14,8 +14,10 @@ Tablas:
 - empleados: empleados del negocio con rol y baja lógica
 
 Uso rápido:
+    0.npm install recharts
     1. pip install -r requirements.txt
     2. uvicorn main:app --reload
+    3. npm run start 
 """
 
 from fastapi import FastAPI, HTTPException
