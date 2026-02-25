@@ -17,12 +17,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   BarChart3, Utensils, Truck, Coffee,
-  TrendingUp, Calendar, CalendarDays, CalendarRange
+  TrendingUp, Calendar, CalendarDays, CalendarRange,
+  FileDown
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Legend
-} from 'recharts'; // librería de gráficos
+} from 'recharts';
 import './Estadisticas.css';
 
 // Arrays de nombres de meses para formatear fechas
@@ -60,21 +61,200 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+// ── FUNCIÓN EXPORTAR PDF ──────────────────────────────────────
+// Usa jsPDF + jspdf-autotable (cargados dinámicamente desde CDN).
+// Incluye: encabezado, KPIs, tabla de datos del gráfico, resumen por origen y pie de página.
+const exportarPDF = async ({ kpis, datosGrafico, filtro, periodo, pedidos }) => {
+  // Carga jsPDF dinámicamente si todavía no está en window
+  if (!window.jspdf) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  // Carga el plugin de tablas
+  if (!window._autotableLoaded) {
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+      script.onload = () => { window._autotableLoaded = true; resolve(); };
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const ahora         = new Date();
+  const fechaHoy      = ahora.toLocaleDateString('es-AR');
+  const horaHoy       = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const filtroNombre  = { todos: 'Todos', salon: 'Salón / Mesas', delivery: 'Delivery', mostrador: 'Mostrador' }[filtro] || filtro;
+  const periodoNombre = { dia: 'Hoy (por hora)', semana: 'Últimos 7 días', mes: 'Últimos 30 días', año: 'Últimos 12 meses' }[periodo] || periodo;
+
+  const VERDE  = [13, 148, 136];
+  const OSCURO = [15, 23, 42];
+  const BLANCO = [255, 255, 255];
+  const GRIS   = [100, 116, 139];
+  const GRIS_C = [226, 232, 240];
+
+  let y = 0;
+
+  // ── ENCABEZADO ─────────────────────────────────────────────
+  doc.setFillColor(...OSCURO);
+  doc.rect(0, 0, 210, 42, 'F');
+
+  doc.setTextColor(...VERDE);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Control de Pedidos', 14, 18);
+
+  doc.setTextColor(...BLANCO);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Reporte de Estadísticas', 14, 27);
+  doc.text(`Generado: ${fechaHoy} ${horaHoy}`, 14, 34);
+  doc.text(`Filtro: ${filtroNombre}   |   Período: ${periodoNombre}`, 110, 27);
+
+  y = 52;
+
+  // ── SECCIÓN KPIs ───────────────────────────────────────────
+  doc.setTextColor(...OSCURO);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Indicadores Clave (KPIs)', 14, y);
+  y += 5;
+
+  doc.setDrawColor(...VERDE);
+  doc.setLineWidth(0.4);
+  doc.line(14, y, 196, y);
+  y += 7;
+
+  const kpiItems = [
+    { label: 'Ventas hoy',      value: `$${kpis.ventasHoy.toLocaleString()}` },
+    { label: 'Total general',   value: `$${kpis.totalGeneral.toLocaleString()}` },
+    { label: 'Ticket promedio', value: `$${Math.round(kpis.ticketPromedio).toLocaleString()}` },
+    { label: 'Total pedidos',   value: `${kpis.totalPedidos}` },
+  ];
+
+  const cW = 43, cH = 20, gap = 3.5;
+  let cx = 14;
+  kpiItems.forEach(({ label, value }) => {
+    doc.setFillColor(...GRIS_C);
+    doc.roundedRect(cx, y, cW, cH, 3, 3, 'F');
+    doc.setTextColor(...GRIS);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, cx + cW / 2, y + 7, { align: 'center' });
+    doc.setTextColor(...VERDE);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(value, cx + cW / 2, y + 16, { align: 'center' });
+    cx += cW + gap;
+  });
+
+  y += cH + 13;
+
+  // ── TABLA DATOS DEL GRÁFICO ────────────────────────────────
+  doc.setTextColor(...OSCURO);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Ventas — ${periodoNombre}`, 14, y);
+  y += 5;
+  doc.setDrawColor(...VERDE);
+  doc.line(14, y, 196, y);
+  y += 2;
+
+  if (datosGrafico.length > 0) {
+    doc.autoTable({
+      startY: y,
+      head: [['Período', 'Total', 'Salón', 'Delivery', 'Mostrador']],
+      body: datosGrafico.map(d => [
+        d.label,
+        `$${(d.total || 0).toLocaleString()}`,
+        `$${(d.salon || 0).toLocaleString()}`,
+        `$${(d.delivery || 0).toLocaleString()}`,
+        `$${(d.mostrador || 0).toLocaleString()}`,
+      ]),
+      styles:           { fontSize: 8.5, cellPadding: 2.5, textColor: OSCURO },
+      headStyles:       { fillColor: VERDE, textColor: BLANCO, fontStyle: 'bold', halign: 'center' },
+      alternateRowStyles: { fillColor: [241, 245, 249] },
+      columnStyles: {
+        0: { halign: 'left' },
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
+
+  // ── RESUMEN POR ORIGEN ─────────────────────────────────────
+  doc.setTextColor(...OSCURO);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Resumen por Origen', 14, y);
+  y += 5;
+  doc.setDrawColor(...VERDE);
+  doc.line(14, y, 196, y);
+  y += 2;
+
+  const resumenData = ['salon', 'delivery', 'mostrador'].map(org => {
+    const peds   = pedidos.filter(p => (p.origen || '').toLowerCase() === org);
+    const total  = peds.reduce((s, p) => s + (p.total || 0), 0);
+    const ticket = peds.length > 0 ? total / peds.length : 0;
+    return [
+      { salon: 'Salón / Mesas', delivery: 'Delivery', mostrador: 'Mostrador' }[org],
+      peds.length,
+      `$${Math.round(total).toLocaleString()}`,
+      `$${Math.round(ticket).toLocaleString()}`,
+    ];
+  });
+
+  doc.autoTable({
+    startY: y,
+    head: [['Origen', 'Pedidos', 'Total Ventas', 'Ticket Promedio']],
+    body: resumenData,
+    styles:           { fontSize: 8.5, cellPadding: 2.5, textColor: OSCURO },
+    headStyles:       { fillColor: VERDE, textColor: BLANCO, fontStyle: 'bold', halign: 'center' },
+    alternateRowStyles: { fillColor: [241, 245, 249] },
+    columnStyles: {
+      0: { halign: 'left' },
+      1: { halign: 'center' },
+      2: { halign: 'right' },
+      3: { halign: 'right' },
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  // ── PIE DE PÁGINA ──────────────────────────────────────────
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(...GRIS);
+    doc.text(`Página ${i} de ${totalPages}`, 196, 290, { align: 'right' });
+    doc.text('Sistema de Control de Pedidos', 14, 290);
+  }
+
+  doc.save(`estadisticas_${ahora.toISOString().slice(0, 10)}.pdf`);
+};
+
 export const Estadisticas = () => {
-  const [pedidos, setPedidos] = useState([]);  // todos los pedidos del backend
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [pedidos, setPedidos]     = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
+  const [exportando, setExportando] = useState(false);
+  const [filtro, setFiltro]       = useState('todos');
+  const [vista, setVista]         = useState('lista');
+  const [periodo, setPeriodo]     = useState('mes');
 
-  // Filtro de origen: 'todos' | 'salon' | 'delivery' | 'mostrador'
-  const [filtro, setFiltro] = useState('todos');
-
-  // Vista activa: 'lista' (tarjetas) | 'graficos' (KPIs + charts)
-  const [vista, setVista] = useState('lista');
-
-  // Período del gráfico: 'dia' | 'semana' | 'mes' | 'año'
-  const [periodo, setPeriodo] = useState('mes');
-
-  // GET /pedidos — carga todos los pedidos al montar el componente
   useEffect(() => {
     const fetchPedidos = async () => {
       try {
@@ -92,20 +272,15 @@ export const Estadisticas = () => {
     fetchPedidos();
   }, []);
 
-  // Pedidos filtrados según el origen seleccionado
   const pedidosFiltrados = filtro === 'todos'
     ? pedidos
     : pedidos.filter(p => (p.origen || '').toLowerCase() === filtro);
 
-  // ── DATOS PARA LOS GRÁFICOS ───────────────────────────────
-  // useMemo recalcula solo cuando cambian pedidos, filtro o periodo
-  // Genera un array de puntos { label, total, salon, delivery, mostrador }
   const datosGrafico = useMemo(() => {
     const fuente = filtro === 'todos' ? pedidos : pedidos.filter(p => (p.origen || '').toLowerCase() === filtro);
     const ahora  = new Date();
 
     if (periodo === 'dia') {
-      // Agrupa por hora del día (0-23) para las últimas 24 horas
       const porHora = {};
       for (let h = 0; h < 24; h++) porHora[h] = 0;
       fuente.forEach(p => {
@@ -125,7 +300,6 @@ export const Estadisticas = () => {
     }
 
     if (periodo === 'semana') {
-      // Agrupa por día — últimos 7 días
       const dias = {};
       for (let i = 6; i >= 0; i--) {
         const d   = new Date(ahora);
@@ -148,7 +322,6 @@ export const Estadisticas = () => {
     }
 
     if (periodo === 'mes') {
-      // Agrupa por día — últimos 30 días (muestra cada 5 para no saturar el eje)
       const dias = {};
       for (let i = 29; i >= 0; i--) {
         const d   = new Date(ahora);
@@ -167,14 +340,12 @@ export const Estadisticas = () => {
           else if (org === 'mostrador') dias[key].mostrador += p.total || 0;
         }
       });
-      // Filtra para mostrar solo 1 de cada 5 días (evita etiquetas superpuestas)
       return Object.values(dias).filter((_, i) => i % 5 === 0 || i === 29).map(d => ({
         ...d, total: Math.round(d.total), salon: Math.round(d.salon), delivery: Math.round(d.delivery), mostrador: Math.round(d.mostrador)
       }));
     }
 
     if (periodo === 'año') {
-      // Agrupa por mes — últimos 12 meses
       const meses = {};
       for (let i = 11; i >= 0; i--) {
         const d   = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
@@ -199,23 +370,32 @@ export const Estadisticas = () => {
     return [];
   }, [pedidos, filtro, periodo]);
 
-  // ── KPIs (indicadores clave de rendimiento) ───────────────
-  // Se recalculan solo cuando cambia la lista de pedidos
   const kpis = useMemo(() => {
-    const hoy        = new Date().toISOString().slice(0, 10);
-    const ventasHoy  = pedidos.filter(p => p.fecha_pedido?.slice(0, 10) === hoy).reduce((s, p) => s + (p.total || 0), 0);
-    const totalGeneral = pedidos.reduce((s, p) => s + (p.total || 0), 0);
+    const hoy            = new Date().toISOString().slice(0, 10);
+    const ventasHoy      = pedidos.filter(p => p.fecha_pedido?.slice(0, 10) === hoy).reduce((s, p) => s + (p.total || 0), 0);
+    const totalGeneral   = pedidos.reduce((s, p) => s + (p.total || 0), 0);
     const ticketPromedio = pedidos.length > 0 ? totalGeneral / pedidos.length : 0;
     return { ventasHoy, totalGeneral, ticketPromedio, totalPedidos: pedidos.length };
   }, [pedidos]);
 
-  // Opciones de período con su ícono y etiqueta
   const periodos = [
     { key: 'dia',    label: 'Hoy',    icon: <CalendarDays size={15} /> },
     { key: 'semana', label: 'Semana', icon: <Calendar size={15} /> },
     { key: 'mes',    label: 'Mes',    icon: <CalendarRange size={15} /> },
     { key: 'año',    label: 'Año',    icon: <TrendingUp size={15} /> },
   ];
+
+  const handleExportarPDF = async () => {
+    setExportando(true);
+    try {
+      await exportarPDF({ kpis, datosGrafico, filtro, periodo, pedidos });
+    } catch (err) {
+      console.error('Error al exportar PDF:', err);
+      alert('Hubo un error al generar el PDF. Revisá la consola para más detalles.');
+    } finally {
+      setExportando(false);
+    }
+  };
 
   return (
     <section className="estadisticas-section">
@@ -228,7 +408,6 @@ export const Estadisticas = () => {
             <p className="estadisticas-subtitle">Historial completo de todos los pedidos realizados</p>
           </div>
 
-          {/* Toggle que alterna entre vista Lista y vista Gráficos */}
           <div className="vista-toggle">
             <button className={`vista-btn ${vista === 'lista' ? 'active' : ''}`} onClick={() => setVista('lista')}>
               📋 Lista
@@ -240,7 +419,6 @@ export const Estadisticas = () => {
         </div>
 
         {/* ── FILTROS DE ORIGEN ── */}
-        {/* Cambian `filtro` y afectan tanto la lista como los gráficos */}
         <div className="estadisticas-filtros">
           <button className={`filtro-btn ${filtro === 'todos' ? 'active' : ''}`} onClick={() => setFiltro('todos')}>
             Todos ({pedidos.length})
@@ -265,7 +443,7 @@ export const Estadisticas = () => {
             {vista === 'graficos' && (
               <div className="graficos-section">
 
-                {/* KPIs: 4 tarjetas con métricas resumen */}
+                {/* KPIs */}
                 <div className="kpis-grid">
                   <div className="kpi-card">
                     <span className="kpi-label">Ventas hoy</span>
@@ -285,16 +463,31 @@ export const Estadisticas = () => {
                   </div>
                 </div>
 
-                {/* Selector de período: cambia la escala de tiempo del gráfico */}
+                {/* Selector de período + Botón Exportar PDF */}
                 <div className="periodo-selector">
                   {periodos.map(p => (
-                    <button key={p.key} className={`periodo-btn ${periodo === p.key ? 'active' : ''}`} onClick={() => setPeriodo(p.key)}>
+                    <button
+                      key={p.key}
+                      className={`periodo-btn ${periodo === p.key ? 'active' : ''}`}
+                      onClick={() => setPeriodo(p.key)}
+                    >
                       {p.icon} {p.label}
                     </button>
                   ))}
+
+                  {/* ── BOTÓN EXPORTAR PDF ── */}
+                  <button
+                    className="export-pdf-btn"
+                    onClick={handleExportarPDF}
+                    disabled={exportando}
+                    title="Exportar estadísticas a PDF"
+                  >
+                    <FileDown size={16} />
+                    {exportando ? 'Generando...' : 'Exportar PDF'}
+                  </button>
                 </div>
 
-                {/* Gráfico de barras: ventas totales por período */}
+                {/* Gráfico de barras */}
                 <div className="chart-card">
                   <h3 className="chart-title">
                     Ventas por {periodo === 'dia' ? 'hora' : periodo === 'semana' ? 'día' : periodo === 'mes' ? 'día' : 'mes'}
@@ -306,13 +499,12 @@ export const Estadisticas = () => {
                       <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false}
                         tickFormatter={v => `$${v >= 1000 ? (v/1000).toFixed(0)+'k' : v}`} />
                       <Tooltip content={<CustomTooltip />} />
-                      {/* Una barra verde por período */}
                       <Bar dataKey="total" name="Total" fill="#0d9488" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
 
-                {/* Gráfico de líneas: comparativa salon vs delivery vs mostrador */}
+                {/* Gráfico de líneas */}
                 <div className="chart-card">
                   <h3 className="chart-title">Comparativa por origen</h3>
                   <ResponsiveContainer width="100%" height={280}>
@@ -342,10 +534,8 @@ export const Estadisticas = () => {
                     const { fecha, mes, hora } = formatFecha(pedido.fecha_pedido);
                     const origen = (pedido.origen || '').toLowerCase();
                     return (
-                      // Clase dinámica según origen para el borde de color izquierdo
                       <div key={pedido.pedido_id} className={`pedido-card pedido-card--${origen}`}>
 
-                        {/* ID + origen + total */}
                         <div className="pedido-card__header">
                           <div className="pedido-card__id-origen">
                             <span className="pedido-id">Pedido #{pedido.pedido_id}</span>
@@ -358,7 +548,6 @@ export const Estadisticas = () => {
                           <span className="pedido-total">${(pedido.total || 0).toLocaleString()}</span>
                         </div>
 
-                        {/* Fecha, mes, hora y usuario que cargó el pedido */}
                         <div className="pedido-card__fechas">
                           <div className="pedido-meta-row"><span className="meta-label">Fecha:</span><span className="meta-value">{fecha}</span></div>
                           <div className="pedido-meta-row"><span className="meta-label">Mes:</span><span className="meta-value">{mes}</span></div>
@@ -368,7 +557,6 @@ export const Estadisticas = () => {
                           )}
                         </div>
 
-                        {/* Detalles específicos según el origen del pedido */}
                         <div className="pedido-card__detalles">
                           <h4>Detalles del pedido</h4>
                           {origen === 'salon' && (
@@ -393,7 +581,6 @@ export const Estadisticas = () => {
                             </div>
                           )}
 
-                          {/* Lista de productos del pedido */}
                           <div className="pedido-items">
                             <strong>Productos:</strong>
                             {pedido.items?.map((it) => (

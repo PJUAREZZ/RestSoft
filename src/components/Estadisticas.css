@@ -147,8 +147,8 @@
 
 .pedido-card:hover { border-color: rgba(13,148,136,0.25); }
 
-.pedido-card--salon   { border-left: 3px solid #3b82f6; }
-.pedido-card--delivery { border-left: 3px solid #f59e0b; }
+.pedido-card--salon    { border-left: 3px solid #3b82f6; }
+.pedido-card--delivery  { border-left: 3px solid #f59e0b; }
 .pedido-card--mostrador { border-left: 3px solid #a855f7; }
 
 .pedido-card__header {
@@ -182,9 +182,9 @@
   border-radius: 20px;
 }
 
-.origen-salon    { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
-.origen-delivery { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
-.origen-mostrador { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
+.origen-salon     { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+.origen-delivery  { background: rgba(245,158,11,0.15);  color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+.origen-mostrador { background: rgba(168,85,247,0.15);  color: #c084fc; border: 1px solid rgba(168,85,247,0.25); }
 
 .pedido-total {
   font-size: 1.1rem;
@@ -333,6 +333,7 @@
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .periodo-btn {
@@ -360,6 +361,38 @@
   background: rgba(13,148,136,0.15);
   border-color: #0d9488;
   color: #0d9488;
+}
+
+/* ─── BOTÓN EXPORTAR PDF ─── */
+.export-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.55rem 1.1rem;
+  margin-left: auto;
+  background: #0d9488;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  white-space: nowrap;
+}
+
+.export-pdf-btn:hover:not(:disabled) {
+  background: #0f766e;
+  transform: translateY(-1px);
+}
+
+.export-pdf-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.export-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ─── GRÁFICOS ─── */
@@ -408,6 +441,7 @@
   .kpis-grid { grid-template-columns: repeat(2, 1fr); }
   .estadisticas-header { flex-direction: column; }
   .pedido-card__fechas { gap: 0.75rem; }
+  .export-pdf-btn { margin-left: 0; width: 100%; justify-content: center; }
 }
 
 @media (max-width: 480px) {
