@@ -1,18 +1,6 @@
 // ============================================================
 // Navegador.jsx — BARRA DE NAVEGACIÓN SUPERIOR
 // ============================================================
-// Muestra el header de la app con:
-//   - Logo y nombre del negocio (izquierda)
-//   - Íconos de navegación (centro) — algunos solo para admin
-//   - Nombre del usuario, botón de ayuda y botón Salir (derecha)
-//   - Menú mobile (hamburguesa) para pantallas chicas
-//
-// Props:
-//   currentUser  → objeto del usuario logueado
-//   onLogout     → función para cerrar sesión
-//   onPageChange → cambia la página activa en App.jsx
-//   currentPage  → string con la página activa (para resaltar el ícono)
-// ============================================================
 
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
@@ -25,28 +13,29 @@ import "./Navegador.css";
 
 export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, onOpenAgregar }) => {
 
-  // true = menú hamburguesa abierto (solo en mobile)
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // true = popup de ayuda/WhatsApp visible
   const [contactOpen, setContactOpen] = useState(false);
 
-  // Permite navegar a rutas URL (usado al cerrar sesión para volver a "/")
+  // ── RELOJ EN TIEMPO REAL ──────────────────────────────────
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = now.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
   const navigate = useNavigate();
 
-  // Cierra el menú mobile al hacer clic en cualquier enlace
   const handleLinkClick = () => setMenuOpen(false);
 
-  // Cambia la página activa y cierra el menú mobile
   const handlePageChange = (page) => {
     onPageChange(page);
     handleLinkClick();
   };
 
-  // ── CERRAR POPUP DE CONTACTO AL HACER CLIC AFUERA ────────
-  // Agrega un listener global al documento. Si el clic fue fuera
-  // del elemento .contact-wrapper, cierra el popup.
-  // Se limpia cuando el componente se desmonta para evitar memory leaks.
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (contactOpen && !e.target.closest('.contact-wrapper')) setContactOpen(false);
@@ -55,14 +44,12 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
     return () => document.removeEventListener('click', handleClickOutside);
   }, [contactOpen]);
 
-  // true si el usuario logueado es administrador
-  // Determina qué íconos del nav se muestran
   const isAdmin = currentUser?.role === 'admin';
 
   return (
     <header>
 
-      {/* Logo: íconos decorativos + nombre del negocio del admin */}
+      {/* Logo */}
       <div className="logo-container">
         <Hamburger size={24} />
         <Coffee size={24} />
@@ -72,8 +59,6 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
       {/* ── NAVEGACIÓN DESKTOP ── */}
       <nav>
         <ul className="nav-ul">
-
-          {/* 🍴 Pedidos — visible para TODOS los roles */}
           <li>
             <button
               className={`nav-li ${currentPage === 'salon' ? 'nav-li-active' : ''}`}
@@ -85,10 +70,8 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
             </button>
           </li>
 
-          {/* Los siguientes íconos solo aparecen para el admin */}
           {isAdmin && (
             <>
-              {/* 📊 Estadísticas — historial de pedidos y gráficos de ventas */}
               <li>
                 <button
                   className={`nav-li ${currentPage === 'estadisticas' ? 'nav-li-active' : ''}`}
@@ -99,8 +82,6 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
                   <BarChart3 size={20} />
                 </button>
               </li>
-
-              {/* 👤 Empleados — gestión del personal */}
               <li>
                 <button
                   className={`nav-li ${currentPage === 'empleados' ? 'nav-li-active' : ''}`}
@@ -111,8 +92,6 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
                   <User size={20} />
                 </button>
               </li>
-
-              {/* ➕ Productos — gestión de productos y categorías */}
               <li>
                 <button
                   className={`nav-li ${currentPage === 'productos' ? 'nav-li-active' : ''}`}
@@ -128,18 +107,24 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
         </ul>
       </nav>
 
-      {/* ── SECCIÓN DERECHA: USUARIO + AYUDA + SALIR ── */}
+      {/* ── SECCIÓN DERECHA ── */}
       <div className="actions-container">
         {currentUser ? (
           <div className="nav-user">
 
-            {/* Nombre y teléfono del usuario logueado */}
+            {/* Nombre y teléfono */}
             <div className="nav-user-info">
               <span className="nav-username">{currentUser.name}</span>
               {currentUser.phone && <span className="nav-userphone">{currentUser.phone}</span>}
             </div>
 
-            {/* ❓ Botón de ayuda — abre popup con link a WhatsApp */}
+            {/* 🕐 Reloj con fecha */}
+            <div className="nav-clock">
+              <span className="nav-clock-time">{timeStr}</span>
+              <span className="nav-clock-date">{dateStr}</span>
+            </div>
+
+            {/* Botón ayuda */}
             <div className="contact-wrapper">
               <button
                 className="contact-button"
@@ -149,14 +134,13 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
                 <HelpCircle size={20} />
               </button>
 
-              {/* Popup de contacto: solo visible cuando contactOpen === true */}
               {contactOpen && (
                 <div className="contact-modal">
                   <p>¿Estás teniendo inconvenientes con RestSoft? Ponte en contacto con nosotros.</p>
                   <a
                     href="https://wa.me/3865616350"
-                    target="_blank"           // abre en nueva pestaña
-                    rel="noopener noreferrer" // seguridad al abrir links externos
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="whatsapp-button"
                   >
                     <MessageCircle size={18} />
@@ -166,7 +150,7 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
               )}
             </div>
 
-            {/* Botón Salir: ejecuta logout y redirige a la raíz "/" */}
+            {/* Botón Salir */}
             <button
               className="logout-button"
               onClick={() => { if (onLogout) onLogout(); navigate('/'); }}
@@ -175,17 +159,15 @@ export const Navegador = ({ currentUser, onLogout, onPageChange, currentPage, on
             </button>
           </div>
         ) : (
-          // Si no hay sesión, muestra botón para ir a login
           <button className="login-button" onClick={() => navigate('/')}>Ingresar</button>
         )}
 
-        {/* Botón hamburguesa — solo visible en mobile, alterna menuOpen */}
         <button onClick={() => setMenuOpen(!menuOpen)} className="menu-button">
           {menuOpen ? <XIcon /> : <MenuIcon />}
         </button>
       </div>
 
-      {/* ── MENÚ MOBILE — mismos íconos que el nav desktop ── */}
+      {/* ── MENÚ MOBILE ── */}
       {menuOpen && (
         <nav className="nav-mobile">
           <ul className="nav-ul">
