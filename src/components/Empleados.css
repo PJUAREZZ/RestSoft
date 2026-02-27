@@ -183,6 +183,21 @@
   margin-bottom: 0.25rem;
 }
 
+/* ── BADGE DE ROL ── */
+.empleado-rol {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  background: #ccfbf1;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+}
+
 .empleado-email {
   color: #6b7280;
   font-size: 0.9rem;
